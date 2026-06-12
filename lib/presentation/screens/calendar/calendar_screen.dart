@@ -41,7 +41,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           TableCalendar<WorkEntry>(
             locale: 'pt_BR',
             firstDay: DateTime(2015),
-            lastDay: DateTime(2100),
+            // Sem dias futuros: não se registra diária no futuro.
+            lastDay: DateTime.now(),
             focusedDay: _focused,
             calendarFormat: _format,
             availableCalendarFormats: const {
@@ -53,10 +54,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             selectedDayPredicate: (d) => selected != null && isSameDay(selected, d),
             eventLoader: (d) => byDay[_dayKey(d)] ?? const [],
             onFormatChanged: (f) => setState(() => _format = f),
-            onDaySelected: (sel, foc) => setState(() {
-              _selected = sel;
-              _focused = foc;
-            }),
+            onDaySelected: (sel, foc) {
+              setState(() {
+                _selected = sel;
+                _focused = foc;
+              });
+              // Publica o dia para o FAB "Nova diária" importar a data.
+              ref.read(calendarSelectedDayProvider.notifier).state = sel;
+            },
             calendarStyle: const CalendarStyle(
               todayDecoration: BoxDecoration(
                 color: Brand.orangeDark,

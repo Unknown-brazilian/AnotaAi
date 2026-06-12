@@ -101,7 +101,7 @@ class PdfExportService {
   }
 
   pw.Widget _entriesTable(ReportData data) {
-    final headers = ['Data', 'Local', 'Patrão', 'Serviço', 'Horas', 'A receber', 'Pago', 'Status'];
+    final headers = ['Data', 'Local', 'Patrão', 'Serviço', 'Horas', 'Valor', 'Pago', 'Status'];
 
     final rows = data.entries.map((e) {
       final hours = WorkCalc.hoursWorked(e.startMinutes, e.endMinutes);
@@ -194,9 +194,10 @@ class PdfExportService {
               style: pw.TextStyle(
                   fontSize: 11, fontWeight: pw.FontWeight.bold, color: _orange)),
           pw.Divider(height: 8, color: PdfColors.grey300),
-          row('A receber', Fmt.money(due, c), _black),
+          row('Valor total', Fmt.money(due, c), _black),
           row('Já recebido', Fmt.money(paid, c), _paid),
-          row('Pendente', Fmt.money(pending, c), _pending),
+          // "A receber" = saldo em aberto (já desconta o que foi recebido).
+          row('A receber', Fmt.money(pending, c), _pending),
         ],
       ),
     );

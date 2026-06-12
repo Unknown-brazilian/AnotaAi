@@ -20,6 +20,10 @@ class AppSettings {
   final int reminderHour;
   final int reminderMinute;
 
+  /// Verdadeiro depois que o usuário concluiu o cadastro inicial (nome +
+  /// segurança). Enquanto falso, o app mostra a tela de onboarding após a splash.
+  final bool onboarded;
+
   const AppSettings({
     this.defaultCurrency = Currency.eur,
     this.defaultWorkerName = '',
@@ -32,6 +36,7 @@ class AppSettings {
     this.reminderEnabled = false,
     this.reminderHour = 19,
     this.reminderMinute = 0,
+    this.onboarded = false,
   });
 
   ThemeMode get materialThemeMode => switch (themeMode) {
@@ -52,6 +57,7 @@ class AppSettings {
     bool? reminderEnabled,
     int? reminderHour,
     int? reminderMinute,
+    bool? onboarded,
   }) {
     return AppSettings(
       defaultCurrency: defaultCurrency ?? this.defaultCurrency,
@@ -65,6 +71,7 @@ class AppSettings {
       reminderEnabled: reminderEnabled ?? this.reminderEnabled,
       reminderHour: reminderHour ?? this.reminderHour,
       reminderMinute: reminderMinute ?? this.reminderMinute,
+      onboarded: onboarded ?? this.onboarded,
     );
   }
 }
@@ -83,6 +90,7 @@ class SettingsService {
   static const _kReminder = 'reminderEnabled';
   static const _kReminderH = 'reminderHour';
   static const _kReminderM = 'reminderMinute';
+  static const _kOnboarded = 'onboarded';
   static const _kPin = 'anotai_pin';
 
   final SharedPreferences prefs;
@@ -105,6 +113,7 @@ class SettingsService {
       reminderEnabled: prefs.getBool(_kReminder) ?? false,
       reminderHour: prefs.getInt(_kReminderH) ?? 19,
       reminderMinute: prefs.getInt(_kReminderM) ?? 0,
+      onboarded: prefs.getBool(_kOnboarded) ?? false,
     );
   }
 
@@ -120,6 +129,7 @@ class SettingsService {
     await prefs.setBool(_kReminder, s.reminderEnabled);
     await prefs.setInt(_kReminderH, s.reminderHour);
     await prefs.setInt(_kReminderM, s.reminderMinute);
+    await prefs.setBool(_kOnboarded, s.onboarded);
   }
 
   // ---- PIN (armazenamento seguro) ----

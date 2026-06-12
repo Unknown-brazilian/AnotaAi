@@ -34,7 +34,7 @@ class XlsExportService {
       TextCellValue('Serviço'),
       TextCellValue('Moeda'),
       TextCellValue('Horas'),
-      TextCellValue('A receber'),
+      TextCellValue('Valor'),
       TextCellValue('Pago'),
       TextCellValue('Status'),
     ]);
@@ -59,9 +59,9 @@ class XlsExportService {
     sheet.appendRow([TextCellValue('Totais por moeda')]);
     sheet.appendRow([
       TextCellValue('Moeda'),
-      TextCellValue('A receber'),
+      TextCellValue('Valor total'),
       TextCellValue('Já recebido'),
-      TextCellValue('Pendente'),
+      TextCellValue('A receber'), // saldo em aberto (já desconta o recebido)
     ]);
     for (final t in data.summary.totals) {
       sheet.appendRow([

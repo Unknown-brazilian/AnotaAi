@@ -8,15 +8,17 @@ import 'calc.dart';
 /// [CurrencyTotals], conforme exigido no Extrato.
 class CurrencyTotals {
   final Currency currency;
-  double due = 0; // total a receber
+  double due = 0; // valor total do trabalho (bruto)
   double paid = 0; // total já recebido
+  double toReceive = 0; // saldo a receber — desconsidera diárias já marcadas como recebidas
   int days = 0; // diárias (no modo diária, equivale a dias)
   double hours = 0; // horas (somadas dos registros por hora)
   int openCount = 0; // quantas diárias ainda em aberto
 
   CurrencyTotals(this.currency);
 
-  double get pending => (due - paid).clamp(0, double.infinity);
+  /// Mantido por compatibilidade; igual a [toReceive] no fluxo normal.
+  double get pending => toReceive;
 }
 
 /// Resumo agregado de um período (ou de um patrão).
@@ -43,7 +45,13 @@ class WorkSummary {
       t.paid += e.amountPaid;
       t.days += 1;
       t.hours += WorkCalc.hoursWorked(e.startMinutes, e.endMinutes);
-      if (!e.isPaid) t.openCount += 1;
+      // "A receber" só conta o que NÃO foi marcado como recebido (saldo das
+      // diárias em aberto). Diária marcada como paga é desconsiderada.
+      if (!e.isPaid) {
+        t.openCount += 1;
+        final balance = e.amountDue - e.amountPaid;
+        if (balance > 0) t.toReceive += balance;
+      }
       distinctDays.add('${e.date.year}-${e.date.month}-${e.date.day}');
     }
     s.totalDays = distinctDays.length;

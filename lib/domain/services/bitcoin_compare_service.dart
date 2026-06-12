@@ -77,13 +77,19 @@ class BitcoinCompareService {
 
       final currentPrice = await binance.currentPrice(pair);
 
+      final now = DateTime.now();
       var savedFiat = 0.0;
       var btc = 0.0;
       for (final e in list) {
         final portion = e.amountDue * pct;
         if (portion <= 0) continue;
         savedFiat += portion;
-        final close = await binance.closeOn(pair, e.date);
+        // Para uma diária de HOJE, o fechamento diário ainda não existe (o
+        // candle do dia não fechou) — usa a cotação atual.
+        final isToday = e.date.year == now.year &&
+            e.date.month == now.month &&
+            e.date.day == now.day;
+        final close = isToday ? currentPrice : await binance.closeOn(pair, e.date);
         if (close == null || close <= 0) {
           incomplete = true;
           continue; // sem cotação daquele dia — ignora na soma de BTC

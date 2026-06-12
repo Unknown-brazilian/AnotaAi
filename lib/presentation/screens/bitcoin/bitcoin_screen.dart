@@ -119,8 +119,11 @@ class BitcoinScreen extends ConsumerWidget {
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             IconButton(
               icon: const Icon(Icons.chevron_right),
-              onPressed: () => ref.read(periodAnchorProvider.notifier).state =
-                  PeriodCalculator.nextAnchor(type, anchor),
+              // Não navega para períodos futuros.
+              onPressed: PeriodCalculator.hasNext(type, anchor)
+                  ? () => ref.read(periodAnchorProvider.notifier).state =
+                      PeriodCalculator.nextAnchor(type, anchor)
+                  : null,
             ),
           ],
         ),

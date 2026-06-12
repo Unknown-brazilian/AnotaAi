@@ -115,10 +115,10 @@ class CurrencyTotalsCard extends StatelessWidget {
                     style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12)),
               ),
             const Divider(height: 20),
-            _line(context, 'A receber', totals.due, totals.currency, null),
-            _line(context, 'Já recebido', totals.paid, totals.currency, Brand.paid),
-            _line(context, 'Pendente', totals.pending, totals.currency, Brand.pending,
+            // "A receber" = saldo em aberto (desconsidera o que já foi recebido).
+            _line(context, 'A receber', totals.pending, totals.currency, Brand.pending,
                 bold: true),
+            _line(context, 'Já recebido', totals.paid, totals.currency, Brand.paid),
           ],
         ),
       ),

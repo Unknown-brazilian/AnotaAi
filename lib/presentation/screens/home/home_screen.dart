@@ -7,6 +7,7 @@ import '../../../domain/summary.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
 import '../entry/entry_form_screen.dart';
+import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -17,12 +18,19 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  bool _showBrl = false;
+  late bool _showBrl;
+
+  @override
+  void initState() {
+    super.initState();
+    // Valor inicial vem da configuração; depois o toggle é controlado localmente
+    // (pode ser ligado/desligado sem ficar preso na config global).
+    _showBrl = ref.read(settingsProvider).showBrl;
+  }
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
-    _showBrl = _showBrl || settings.showBrl;
     final monthEntries = ref.watch(currentMonthEntriesProvider);
     final recent = ref.watch(allEntriesProvider);
     final brlRate = _showBrl
@@ -37,6 +45,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ? Brand.black
                 : null),
         actions: [
+          IconButton(
+            tooltip: 'Perfil',
+            icon: const Icon(Icons.account_circle_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+          ),
           IconButton(
             tooltip: S.settings,
             icon: const Icon(Icons.settings_outlined),

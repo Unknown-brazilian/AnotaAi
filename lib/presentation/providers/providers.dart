@@ -81,6 +81,10 @@ final settingsProvider =
 final allEntriesProvider = StreamProvider<List<WorkEntry>>(
     (ref) => ref.watch(databaseProvider).watchAllEntries());
 
+/// Dia selecionado no calendário (para "Nova diária" importar a data).
+/// Null = nenhum dia tocado ainda.
+final calendarSelectedDayProvider = StateProvider<DateTime?>((ref) => null);
+
 /// Tipo de período selecionado no Extrato (mês por padrão).
 final periodTypeProvider = StateProvider<PeriodType>((ref) => PeriodType.month);
 

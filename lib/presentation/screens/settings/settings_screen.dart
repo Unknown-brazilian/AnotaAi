@@ -12,6 +12,7 @@ import '../../../core/brand.dart';
 import '../../../core/enums.dart';
 import '../../../domain/services/settings_service.dart';
 import '../../providers/providers.dart';
+import '../profile/profile_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -25,6 +26,19 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Configurações')),
       body: ListView(
         children: [
+          _header('Conta'),
+          ListTile(
+            leading: const Icon(Icons.account_circle, color: Brand.orange),
+            title: const Text('Perfil do usuário'),
+            subtitle: Text(s.defaultWorkerName.isEmpty
+                ? 'Nome e segurança (PIN/biometria)'
+                : '${s.defaultWorkerName} · nome e segurança'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+          ),
+
           _header('Aparência'),
           ListTile(
             leading: const Icon(Icons.brightness_6),
@@ -64,13 +78,6 @@ class SettingsScreen extends ConsumerWidget {
             value: s.showBrl,
             onChanged: (v) => notifier.update(s.copyWith(showBrl: v)),
           ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Nome padrão do trabalhador'),
-            subtitle: Text(s.defaultWorkerName.isEmpty ? 'Não definido' : s.defaultWorkerName),
-            trailing: const Icon(Icons.edit),
-            onTap: () => _editWorkerName(context, ref, s),
-          ),
 
           _header('Bitcoin'),
           ListTile(
@@ -88,21 +95,6 @@ class SettingsScreen extends ConsumerWidget {
               label: '${(s.bitcoinSavingsPct * 100).round()}%',
               onChanged: (v) => notifier.update(s.copyWith(bitcoinSavingsPct: v / 100)),
             ),
-          ),
-
-          _header('Segurança'),
-          SwitchListTile(
-            secondary: const Icon(Icons.pin),
-            title: const Text('Bloqueio por PIN'),
-            value: s.pinEnabled,
-            onChanged: (v) => _togglePin(context, ref, s, v),
-          ),
-          SwitchListTile(
-            secondary: const Icon(Icons.fingerprint),
-            title: const Text('Bloqueio por biometria'),
-            subtitle: const Text('Digital ou rosto do aparelho'),
-            value: s.biometricEnabled,
-            onChanged: (v) => _toggleBiometric(context, ref, s, v),
           ),
 
           _header('Lembretes'),
@@ -158,7 +150,7 @@ class SettingsScreen extends ConsumerWidget {
           const ListTile(
             leading: Icon(Icons.info_outline),
             title: Text('AnotAí'),
-            subtitle: Text('Controle de diárias · v1.0.0'),
+            subtitle: Text('Controle de diárias · v1.0.1'),
           ),
           const SizedBox(height: 24),
         ],
@@ -172,76 +164,6 @@ class SettingsScreen extends ConsumerWidget {
             style: const TextStyle(
                 color: Brand.orange, fontWeight: FontWeight.bold, fontSize: 13)),
       );
-
-  Future<void> _editWorkerName(BuildContext context, WidgetRef ref, AppSettings s) async {
-    final ctrl = TextEditingController(text: s.defaultWorkerName);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Nome padrão'),
-        content: TextField(controller: ctrl, autofocus: true,
-            decoration: const InputDecoration(labelText: 'Seu nome')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-              child: const Text('Salvar')),
-        ],
-      ),
-    );
-    if (result != null) {
-      ref.read(settingsProvider.notifier).update(s.copyWith(defaultWorkerName: result));
-    }
-  }
-
-  Future<void> _togglePin(BuildContext context, WidgetRef ref, AppSettings s, bool enable) async {
-    final service = ref.read(settingsServiceProvider);
-    if (!enable) {
-      await service.clearPin();
-      ref.read(settingsProvider.notifier).update(s.copyWith(pinEnabled: false));
-      return;
-    }
-    final ctrl = TextEditingController();
-    final pin = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Definir PIN'),
-        content: TextField(
-          controller: ctrl,
-          keyboardType: TextInputType.number,
-          obscureText: true,
-          autofocus: true,
-          maxLength: 8,
-          decoration: const InputDecoration(labelText: 'PIN (mín. 4 dígitos)'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-              child: const Text('Salvar')),
-        ],
-      ),
-    );
-    if (pin != null && pin.length >= 4) {
-      await service.setPin(pin);
-      ref.read(settingsProvider.notifier).update(s.copyWith(pinEnabled: true));
-    } else if (pin != null && context.mounted) {
-      _snack(context, 'PIN precisa ter ao menos 4 dígitos.');
-    }
-  }
-
-  Future<void> _toggleBiometric(BuildContext context, WidgetRef ref, AppSettings s, bool enable) async {
-    if (!enable) {
-      ref.read(settingsProvider.notifier).update(s.copyWith(biometricEnabled: false));
-      return;
-    }
-    final can = await ref.read(authServiceProvider).canCheckBiometrics();
-    if (!can) {
-      if (context.mounted) _snack(context, 'Este aparelho não tem biometria configurada.');
-      return;
-    }
-    ref.read(settingsProvider.notifier).update(s.copyWith(biometricEnabled: true));
-  }
 
   Future<void> _toggleReminder(BuildContext context, WidgetRef ref, AppSettings s, bool enable) async {
     final notif = ref.read(notificationServiceProvider);

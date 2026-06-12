@@ -52,3 +52,7 @@ app.*.map.json
 prompt_claude_code_diarias_app.md
 .idea/
 *.iml
+
+# Artefatos locais
+/android/.kotlin/
+/Bugs/

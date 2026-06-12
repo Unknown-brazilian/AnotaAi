@@ -19,7 +19,12 @@ import '../../widgets/autocomplete_field.dart';
 class EntryFormScreen extends ConsumerStatefulWidget {
   /// Quando informado, a tela edita a diária existente.
   final WorkEntry? existing;
-  const EntryFormScreen({super.key, this.existing});
+
+  /// Data inicial sugerida ao criar (ex.: dia selecionado no calendário).
+  /// É limitada a hoje — não se cria diária em data futura.
+  final DateTime? initialDate;
+
+  const EntryFormScreen({super.key, this.existing, this.initialDate});
 
   @override
   ConsumerState<EntryFormScreen> createState() => _EntryFormScreenState();
@@ -28,7 +33,6 @@ class EntryFormScreen extends ConsumerStatefulWidget {
 class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  late final TextEditingController _worker;
   late final TextEditingController _employer;
   late final TextEditingController _place;
   late final TextEditingController _service;
@@ -56,8 +60,6 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     final e = widget.existing;
     final settings = ref.read(settingsProvider);
 
-    _worker = TextEditingController(
-        text: e?.workerName ?? settings.defaultWorkerName);
     _employer = TextEditingController(text: e?.employerName ?? '');
     _place = TextEditingController(text: e?.placeName ?? '');
     _service = TextEditingController(text: e?.serviceType ?? '');
@@ -82,11 +84,21 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
       _attachments = (jsonDecode(e.attachmentPaths) as List).cast<String>();
     } else {
       _currency = settings.defaultCurrency;
+      // Importa o dia sugerido (ex.: calendário), nunca no futuro.
+      final today = _today();
+      final suggested = widget.initialDate ?? today;
+      _date = suggested.isAfter(today) ? today : suggested;
     }
 
     ref.read(attachmentServiceProvider).dir().then((dir) {
       if (mounted) setState(() => _attachDir = dir.path);
     });
+  }
+
+  /// Hoje, sem componente de hora.
+  DateTime _today() {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day);
   }
 
   String _numText(double v) =>
@@ -109,7 +121,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   @override
   void dispose() {
     for (final c in [
-      _worker, _employer, _place, _service, _dailyRate, _hourlyRate, _amountPaid, _notes
+      _employer, _place, _service, _dailyRate, _hourlyRate, _amountPaid, _notes
     ]) {
       c.dispose();
     }
@@ -117,11 +129,13 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   }
 
   Future<void> _pickDate() async {
+    final today = _today();
     final picked = await showDatePicker(
       context: context,
-      initialDate: _date,
+      initialDate: _date.isAfter(today) ? today : _date,
       firstDate: DateTime(2015),
-      lastDate: DateTime(2100),
+      // Não permite registrar diária em data futura.
+      lastDate: today,
     );
     if (picked != null) setState(() => _date = picked);
   }
@@ -176,6 +190,12 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Defesa: nunca salvar diária em data futura.
+    if (_date.isAfter(_today())) {
+      _snack('Não é possível registrar diária em data futura.');
+      return;
+    }
+
     final amountDue = WorkCalc.amountDue(
       mode: _mode,
       dailyRate: _parseNum(_dailyRate),
@@ -190,7 +210,8 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     final companion = WorkEntriesCompanion(
       id: widget.existing == null ? const d.Value.absent() : d.Value(widget.existing!.id),
       date: d.Value(DateTime(_date.year, _date.month, _date.day)),
-      workerName: d.Value(_worker.text.trim()),
+      // Nome vem do perfil (persistente); não é editável por diária.
+      workerName: d.Value(ref.read(settingsProvider).defaultWorkerName),
       employerName: d.Value(_employer.text.trim()),
       placeName: d.Value(_place.text.trim()),
       serviceType: d.Value(_service.text.trim()),
@@ -246,12 +267,6 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
             ),
             const SizedBox(height: 8),
 
-            TextFormField(
-              controller: _worker,
-              decoration: const InputDecoration(
-                  labelText: 'Seu nome', prefixIcon: Icon(Icons.person)),
-            ),
-            const SizedBox(height: 12),
             AutocompleteField(
               controller: _employer,
               label: 'Nome do patrão / empresa',

@@ -74,6 +74,13 @@ class PeriodCalculator {
     return r.end; // primeiro dia do período seguinte
   }
 
+  /// Verdadeiro quando dá para avançar — ou seja, o próximo período NÃO começa
+  /// no futuro. Usado para desabilitar o botão ">" no período atual.
+  static bool hasNext(PeriodType type, DateTime anchor) {
+    final nextStart = nextAnchor(type, anchor); // 1º dia do período seguinte
+    return !nextStart.isAfter(dayStart(DateTime.now()));
+  }
+
   /// Rótulo amigável do período (ex.: "Junho 2026", "1º Tri 2026").
   static String label(PeriodType type, DateTime anchor) {
     final r = rangeFor(type, anchor);

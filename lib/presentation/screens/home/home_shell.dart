@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/strings.dart';
+import '../../providers/providers.dart';
 import '../bitcoin/bitcoin_screen.dart';
 import '../calendar/calendar_screen.dart';
 import '../entry/entry_form_screen.dart';
@@ -9,15 +11,19 @@ import '../who_owes/who_owes_screen.dart';
 import 'home_screen.dart';
 
 /// Casca principal com navegação inferior.
-class HomeShell extends StatefulWidget {
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends ConsumerState<HomeShell> {
   int _index = 0;
+
+  // Índices das abas em que o botão "Nova diária" aparece.
+  static const _homeTab = 0;
+  static const _calendarTab = 3;
 
   static const _screens = [
     HomeScreen(),
@@ -27,17 +33,46 @@ class _HomeShellState extends State<HomeShell> {
     BitcoinScreen(),
   ];
 
+  DateTime _today() {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day);
+  }
+
+  void _newEntry() {
+    DateTime? initial;
+    // Na aba Calendário, importa o dia selecionado (se houver).
+    if (_index == _calendarTab) {
+      final sel = ref.read(calendarSelectedDayProvider);
+      if (sel != null) {
+        final day = DateTime(sel.year, sel.month, sel.day);
+        if (day.isAfter(_today())) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Não é possível registrar diária em data futura.')),
+          );
+          return;
+        }
+        initial = day;
+      }
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => EntryFormScreen(initialDate: initial)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // FAB só nas abas Início e Calendário.
+    final showFab = _index == _homeTab || _index == _calendarTab;
+
     return Scaffold(
       body: IndexedStack(index: _index, children: _screens),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const EntryFormScreen()),
-        ),
-        icon: const Icon(Icons.add),
-        label: const Text('Nova diária'),
-      ),
+      floatingActionButton: showFab
+          ? FloatingActionButton.extended(
+              onPressed: _newEntry,
+              icon: const Icon(Icons.add),
+              label: const Text('Nova diária'),
+            )
+          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),

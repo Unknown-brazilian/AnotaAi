@@ -4,12 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/brand.dart';
 import '../../providers/providers.dart';
 import '../home/home_shell.dart';
+import '../onboarding/onboarding_screen.dart';
 import '../splash/animated_splash.dart';
 
-enum _Phase { splash, locked, unlocked }
+enum _Phase { splash, onboarding, locked, unlocked }
 
-/// Orquestra a sequência de abertura: splash animada → bloqueio (se ligado) →
-/// home.
+/// Orquestra a sequência de abertura: splash animada → (cadastro inicial, só na
+/// primeira vez) → bloqueio (se ligado) → home.
 class LockGate extends ConsumerStatefulWidget {
   const LockGate({super.key});
 
@@ -23,7 +24,12 @@ class _LockGateState extends ConsumerState<LockGate> {
   void _onSplashDone() {
     final s = ref.read(settingsProvider);
     setState(() {
-      _phase = (s.pinEnabled || s.biometricEnabled) ? _Phase.locked : _Phase.unlocked;
+      // Primeira abertura → cadastro inicial. Depois, bloqueio (se ligado).
+      if (!s.onboarded) {
+        _phase = _Phase.onboarding;
+      } else {
+        _phase = (s.pinEnabled || s.biometricEnabled) ? _Phase.locked : _Phase.unlocked;
+      }
     });
   }
 
@@ -31,6 +37,8 @@ class _LockGateState extends ConsumerState<LockGate> {
   Widget build(BuildContext context) {
     return switch (_phase) {
       _Phase.splash => AnimatedSplash(onDone: _onSplashDone),
+      _Phase.onboarding =>
+        OnboardingScreen(onDone: () => setState(() => _phase = _Phase.unlocked)),
       _Phase.locked =>
         LockScreen(onUnlocked: () => setState(() => _phase = _Phase.unlocked)),
       _Phase.unlocked => const HomeShell(),
