@@ -1,0 +1,98 @@
+name: anotai
+description: "AnotAí — controle de diárias para trabalhadores que recebem por dia."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Estado
+  flutter_riverpod: ^2.6.1
+
+  # Banco local (SQLite tipado)
+  drift: ^2.28.2
+  sqlite3_flutter_libs: ^0.5.40
+  path_provider: ^2.1.5
+  path: ^1.9.1
+
+  # Rede / cotações
+  http: ^1.5.0
+
+  # Geolocalização
+  geolocator: ^14.0.2
+  geocoding: ^4.0.0
+  url_launcher: ^6.3.2
+
+  # Exportação
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  excel: ^4.0.6
+  share_plus: ^11.1.0
+
+  # Fotos / anexos
+  image_picker: ^1.1.2
+
+  # Segurança
+  local_auth: ^2.3.0
+  flutter_secure_storage: ^9.2.4
+
+  # Calendário e notificações
+  table_calendar: ^3.2.0
+  flutter_local_notifications: ^19.4.2
+  timezone: ^0.10.1
+  flutter_timezone: ^4.1.1
+
+  # Backup / restauração
+  archive: ^3.6.1
+  file_picker: ^10.3.4
+
+  # Preferências simples
+  shared_preferences: ^2.5.3
+
+  # i18n
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # Geração de código drift
+  drift_dev: ^2.28.2
+  build_runner: ^2.7.1
+
+  # Ícone e splash
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.4
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/icon/
+    - assets/splash/
+    - assets/brand/
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/icon_anotai.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#0D0D0D"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+
+flutter_native_splash:
+  color: "#0D0D0D"
+  image: "assets/splash/logo_anotai_twotone.png"
+  android_12:
+    color: "#0D0D0D"
+    image: "assets/splash/icon_foreground.png"
