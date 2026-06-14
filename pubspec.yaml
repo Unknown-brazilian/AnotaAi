@@ -1,7 +1,7 @@
 name: anotai
 description: "AnotAí — controle de diárias para trabalhadores que recebem por dia."
 publish_to: 'none'
-version: 1.1.0+4
+version: 1.2.0+5
 
 environment:
   sdk: ^3.12.1
@@ -56,6 +56,9 @@ dependencies:
 
   # Preferências simples
   shared_preferences: ^2.5.3
+
+  # Contatos do aparelho (sincronizados com a conta Google no Android)
+  flutter_contacts: ^1.1.9+2
 
   # i18n
   intl: ^0.20.2

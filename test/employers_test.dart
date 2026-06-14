@@ -94,4 +94,72 @@ void main() {
     expect(counts.single.name, 'Novo Cliente');
     expect(counts.single.count, 2);
   });
+
+  test('schemaVersion é 2 (agenda de patrões)', () {
+    expect(db.schemaVersion, 2);
+  });
+
+  test('upsertEmployer insere e atualiza por nome (1 registro)', () async {
+    await db.upsertEmployer(name: 'Maria', phone: '111', notes: 'obra A');
+    await db.upsertEmployer(name: 'Maria', phone: '222', notes: 'obra B');
+
+    final list = await db.watchEmployers().first;
+    expect(list.length, 1);
+    expect(list.single.name, 'Maria');
+    expect(list.single.phone, '222');
+    expect(list.single.notes, 'obra B');
+  });
+
+  test('renameEmployerEverywhere renomeia diárias e mantém o contato', () async {
+    await db.insertEntry(entryFor('Thiago Morais'));
+    await db.insertEntry(entryFor('Thiago Morais'));
+    await db.upsertEmployer(name: 'Thiago Morais', phone: '99999', notes: 'pedreiro');
+
+    final affected =
+        await db.renameEmployerEverywhere(['Thiago Morais'], 'Cliente X');
+    expect(affected, 2);
+
+    // diárias renomeadas
+    final counts = await db.employersWithCounts();
+    expect(counts.single.name, 'Cliente X');
+    expect(counts.single.count, 2);
+
+    // contato seguiu para o novo nome (sem duplicar)
+    final agenda = await db.watchEmployers().first;
+    expect(agenda.length, 1);
+    expect(agenda.single.name, 'Cliente X');
+    expect(agenda.single.phone, '99999');
+    expect(agenda.single.notes, 'pedreiro');
+  });
+
+  test('merge consolida contatos da agenda em um só', () async {
+    await db.upsertEmployer(name: 'Joao', phone: '111');
+    await db.upsertEmployer(name: 'João'); // sem telefone
+
+    await db.renameEmployerEverywhere(['Joao', 'João'], 'João Silva');
+
+    final agenda = await db.watchEmployers().first;
+    expect(agenda.length, 1);
+    expect(agenda.single.name, 'João Silva');
+  });
+
+  test('EmployerView.combine junta diárias + agenda e inclui patrão sem diária',
+      () async {
+    await db.insertEntry(entryFor('Com diária'));
+    await db.upsertEmployer(name: 'Com diária', phone: '123');
+    await db.upsertEmployer(name: 'Só agenda', phone: '456'); // 0 diárias
+
+    final entries = await db.watchAllEntries().first;
+    final agenda = await db.watchEmployers().first;
+    final views = EmployerView.combine(entries, agenda);
+
+    final comDiaria = views.firstWhere((v) => v.name == 'Com diária');
+    expect(comDiaria.entriesCount, 1);
+    expect(comDiaria.info?.phone, '123');
+    expect(comDiaria.hasContact, isTrue);
+
+    final soAgenda = views.firstWhere((v) => v.name == 'Só agenda');
+    expect(soAgenda.entriesCount, 0);
+    expect(soAgenda.info?.phone, '456');
+  });
 }

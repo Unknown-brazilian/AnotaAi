@@ -57,6 +57,28 @@ class WorkEntries extends Table {
       dateTime().withDefault(currentDateAndTime)();
 }
 
+/// Agenda de patrões/empregadores: nome + contato.
+///
+/// É um "histórico/agenda" paralelo ao campo de texto livre `employerName` das
+/// diárias — a ligação é feita pelo [name] (== `employerName.trim()`). Um patrão
+/// pode existir aqui sem nenhuma diária (cadastro proativo). [deviceContactId]
+/// guarda o id do contato do aparelho quando importado/salvo (sync com Google).
+class Employers extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get phone => text().withDefault(const Constant(''))();
+  TextColumn get notes => text().nullable()();
+  TextColumn get deviceContactId => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// Nome único — a agenda tem um registro por patrão.
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {name},
+      ];
+}
+
 /// Meta de poupança definida pelo usuário.
 class SavingsGoals extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -84,7 +106,7 @@ class PriceCaches extends Table {
   Set<Column> get primaryKey => {pair, date};
 }
 
-@DriftDatabase(tables: [WorkEntries, SavingsGoals, PriceCaches])
+@DriftDatabase(tables: [WorkEntries, SavingsGoals, PriceCaches, Employers])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -92,10 +114,22 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forFile(File file) : super(NativeDatabase(file));
 
   /// Construtor para testes com um executor arbitrário (ex.: banco em memória).
-  AppDatabase.forExecutor(QueryExecutor executor) : super(executor);
+  AppDatabase.forExecutor(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          // v1 → v2: agenda de patrões (apenas cria a nova tabela; nenhum dado
+          // existente é tocado, então backups da v1 continuam compatíveis).
+          if (from < 2) {
+            await m.createTable(employers);
+          }
+        },
+      );
 
   // ---- WorkEntry CRUD ----
 
@@ -219,6 +253,90 @@ class AppDatabase extends _$AppDatabase {
     }
     return affected;
   }
+
+  /// Renomeia/mescla um patrão em TODA parte: nas diárias (em massa, cobrindo
+  /// [fromRawNames]) e na agenda de contatos, mantendo o contato ligado ao novo
+  /// nome. Retorna o nº de diárias afetadas.
+  Future<int> renameEmployerEverywhere(
+      List<String> fromRawNames, String intoName) async {
+    final affected = await mergeEmployers(fromRawNames, intoName);
+    await _consolidateAgenda(fromRawNames, intoName);
+    return affected;
+  }
+
+  /// Move/mescla os registros da agenda de [fromNames] para [intoName].
+  Future<void> _consolidateAgenda(List<String> fromNames, String intoName) async {
+    final target = intoName.trim();
+    if (target.isEmpty) return;
+    var targetRec = await employerByName(target);
+    final now = DateTime.now();
+    for (final from in fromNames) {
+      final f = from.trim();
+      if (f.isEmpty || f == target) continue;
+      final rec = await employerByName(f);
+      if (rec == null) continue;
+      if (targetRec == null) {
+        // Sem registro no alvo: renomeia o de origem para o novo nome.
+        await (update(employers)..where((t) => t.id.equals(rec.id))).write(
+            EmployersCompanion(name: Value(target), updatedAt: Value(now)));
+        targetRec = rec.copyWith(name: target);
+      } else {
+        // Alvo já tem contato: completa campos vazios e remove o de origem.
+        await upsertEmployer(
+          name: target,
+          phone: targetRec.phone.isEmpty ? rec.phone : targetRec.phone,
+          notes: targetRec.notes ?? rec.notes,
+          deviceContactId: targetRec.deviceContactId ?? rec.deviceContactId,
+        );
+        await (delete(employers)..where((t) => t.id.equals(rec.id))).go();
+      }
+    }
+  }
+
+  // ---- Agenda de patrões (contatos) ----
+
+  /// Todos os patrões cadastrados na agenda, em ordem de nome (stream reativo).
+  Stream<List<Employer>> watchEmployers() =>
+      (select(employers)..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
+
+  Future<Employer?> employerByName(String name) =>
+      (select(employers)..where((t) => t.name.equals(name.trim())))
+          .getSingleOrNull();
+
+  /// Insere ou atualiza (por nome) um patrão na agenda. Os campos passados
+  /// substituem os atuais — o formulário envia sempre o estado completo.
+  Future<int> upsertEmployer({
+    required String name,
+    String phone = '',
+    String? notes,
+    String? deviceContactId,
+  }) async {
+    final trimmed = name.trim();
+    final existing = await employerByName(trimmed);
+    final now = DateTime.now();
+    if (existing == null) {
+      return into(employers).insert(EmployersCompanion.insert(
+        name: trimmed,
+        phone: Value(phone),
+        notes: Value(notes),
+        deviceContactId: Value(deviceContactId),
+        createdAt: Value(now),
+        updatedAt: Value(now),
+      ));
+    }
+    await (update(employers)..where((t) => t.id.equals(existing.id))).write(
+      EmployersCompanion(
+        phone: Value(phone),
+        notes: Value(notes),
+        deviceContactId: Value(deviceContactId),
+        updatedAt: Value(now),
+      ),
+    );
+    return existing.id;
+  }
+
+  Future<int> deleteEmployerByName(String name) =>
+      (delete(employers)..where((t) => t.name.equals(name.trim()))).go();
 
   // ---- SavingsGoal ----
 

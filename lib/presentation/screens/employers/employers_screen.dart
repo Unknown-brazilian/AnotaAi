@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/brand.dart';
 import '../../../domain/summary.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
+import 'employer_edit_screen.dart';
 
-/// Gerencia os nomes de patrões/empregadores (campo de texto livre
-/// `employerName`). Renomear/mesclar é um UPDATE em massa; as demais telas leem
-/// de streams reativos e se atualizam sozinhas. NÃO há tabela nova nem migração.
+/// Agenda/histórico de patrões: nomes + contatos (telefone/WhatsApp/observações),
+/// ligada ao campo de texto livre `employerName` das diárias pelo nome. Permite
+/// adicionar, editar, renomear (propaga para todas as diárias) e mesclar.
 class EmployersScreen extends ConsumerStatefulWidget {
   const EmployersScreen({super.key});
 
@@ -18,17 +20,12 @@ class EmployersScreen extends ConsumerStatefulWidget {
 }
 
 class _EmployersScreenState extends ConsumerState<EmployersScreen> {
-  /// Nomes de exibição selecionados no modo de mesclagem.
   final Set<String> _selected = {};
   bool _selectionMode = false;
 
-  void _toggleSelection(String displayName) {
+  void _toggleSelection(String name) {
     setState(() {
-      if (_selected.contains(displayName)) {
-        _selected.remove(displayName);
-      } else {
-        _selected.add(displayName);
-      }
+      _selected.contains(name) ? _selected.remove(name) : _selected.add(name);
       if (_selected.isEmpty) _selectionMode = false;
     });
   }
@@ -45,7 +42,8 @@ class _EmployersScreenState extends ConsumerState<EmployersScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_selectionMode ? t.selectedCount(_selected.length) : t.manageEmployers),
+        title: Text(
+            _selectionMode ? t.selectedCount(_selected.length) : t.manageEmployers),
         leading: _selectionMode
             ? IconButton(icon: const Icon(Icons.close), onPressed: _exitSelection)
             : null,
@@ -61,110 +59,90 @@ class _EmployersScreenState extends ConsumerState<EmployersScreen> {
       body: employers.isEmpty
           ? EmptyState(icon: Icons.badge_outlined, message: t.employersEmpty)
           : ListView(
-              padding: const EdgeInsets.only(top: 4, bottom: 24),
+              padding: const EdgeInsets.only(top: 4, bottom: 96),
               children: [
                 if (_selectionMode)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                     child: Text(t.selectToMerge,
-                        style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13)),
+                        style: TextStyle(
+                            color: Theme.of(context).hintColor, fontSize: 13)),
                   ),
                 ...employers.map((e) => _EmployerTile(
-                      group: e,
+                      view: e,
                       selectionMode: _selectionMode,
-                      selected: _selected.contains(e.displayName),
+                      selected: _selected.contains(e.name),
                       onTap: () => _selectionMode
-                          ? _toggleSelection(e.displayName)
-                          : _rename(context, e),
+                          ? _toggleSelection(e.name)
+                          : _openEdit(e),
                       onLongPress: _selectionMode
                           ? null
                           : () => setState(() {
                                 _selectionMode = true;
-                                _selected.add(e.displayName);
+                                _selected.add(e.name);
                               }),
                     )),
               ],
             ),
-      floatingActionButton: _selectionMode && _selected.length >= 2
-          ? FloatingActionButton.extended(
-              onPressed: () => _merge(context, employers),
-              icon: const Icon(Icons.merge_type),
-              label: Text(t.mergeInto),
-            )
-          : null,
+      floatingActionButton: _selectionMode
+          ? (_selected.length >= 2
+              ? FloatingActionButton.extended(
+                  onPressed: () => _merge(employers),
+                  icon: const Icon(Icons.merge_type),
+                  label: Text(t.mergeInto),
+                )
+              : null)
+          : FloatingActionButton.extended(
+              onPressed: () => _openEdit(null),
+              icon: const Icon(Icons.person_add_alt),
+              label: Text(t.addEmployer),
+            ),
     );
   }
 
-  /// Diálogo de renomear (ou atribuir nome ao grupo "sem nome").
-  Future<void> _rename(BuildContext context, EmployerGroup g) async {
-    final t = AppLocalizations.of(context);
-    final controller = TextEditingController(text: g.displayName);
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (ctx) => _NameDialog(
-        title: g.isUnnamed ? t.assignName : t.renameEmployerTitle(g.displayName),
-        initial: g.displayName,
-        controller: controller,
-      ),
+  void _openEdit(EmployerView? view) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => EmployerEditScreen(existing: view)),
     );
-    if (newName == null) return;
-    final trimmed = newName.trim();
-    if (trimmed.isEmpty || trimmed == g.displayName) return;
-
-    // mergeEmployers cobre todas as variações brutas (ex.: com espaços) deste
-    // grupo de uma vez; para "sem nome" as variações são valores vazios.
-    final affected =
-        await ref.read(databaseProvider).mergeEmployers(g.rawNames, trimmed);
-    // O autocomplete é FutureProvider e precisa ser invalidado; as listas de
-    // diárias (streams) atualizam sozinhas.
-    ref.invalidate(employerSuggestionsProvider);
-    if (context.mounted) _snack(context, t.employerRenamed(affected));
   }
 
-  /// Mescla os nomes selecionados em um único nome final.
-  Future<void> _merge(BuildContext context, List<EmployerGroup> all) async {
+  Future<void> _merge(List<EmployerView> all) async {
     final t = AppLocalizations.of(context);
-    final selectedGroups =
-        all.where((g) => _selected.contains(g.displayName)).toList();
-    // Sugestões: os próprios nomes selecionados (sem o "sem nome").
-    final options =
-        selectedGroups.where((g) => !g.isUnnamed).map((g) => g.displayName).toList();
+    final selected = all.where((g) => _selected.contains(g.name)).toList();
+    final options = selected.where((g) => !g.isUnnamed).map((g) => g.name).toList();
     final controller =
         TextEditingController(text: options.isNotEmpty ? options.first : '');
 
     final target = await showDialog<String>(
       context: context,
-      builder: (ctx) => _MergeDialog(
-        count: selectedGroups.length,
-        options: options,
-        controller: controller,
-      ),
+      builder: (_) => _MergeDialog(
+          count: selected.length, options: options, controller: controller),
     );
     if (target == null) return;
     final trimmed = target.trim();
     if (trimmed.isEmpty) return;
 
-    final fromRaw = selectedGroups.expand((g) => g.rawNames).toList();
-    final affected = await ref.read(databaseProvider).mergeEmployers(fromRaw, trimmed);
+    final fromRaw = selected.expand((g) => g.rawNames).toList();
+    final affected =
+        await ref.read(databaseProvider).renameEmployerEverywhere(fromRaw, trimmed);
     ref.invalidate(employerSuggestionsProvider);
     _exitSelection();
-    if (context.mounted) _snack(context, t.employerRenamed(affected));
-  }
-
-  void _snack(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(t.employerRenamed(affected))));
+    }
   }
 }
 
 class _EmployerTile extends StatelessWidget {
-  final EmployerGroup group;
+  final EmployerView view;
   final bool selectionMode;
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
   const _EmployerTile({
-    required this.group,
+    required this.view,
     required this.selectionMode,
     required this.selected,
     required this.onTap,
@@ -174,7 +152,12 @@ class _EmployerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final name = group.isUnnamed ? t.noName : group.displayName;
+    final name = view.isUnnamed ? t.noName : view.name;
+    final phone = view.info?.phone.trim() ?? '';
+    final subtitleParts = <String>[
+      view.entriesCount > 0 ? t.daysCount(view.entriesCount) : t.noEntriesYet,
+      if (phone.isNotEmpty) phone,
+    ];
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       child: ListTile(
@@ -191,43 +174,32 @@ class _EmployerTile extends StatelessWidget {
           name,
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            fontStyle: group.isUnnamed ? FontStyle.italic : FontStyle.normal,
+            fontStyle: view.isUnnamed ? FontStyle.italic : FontStyle.normal,
           ),
         ),
-        subtitle: Text(t.daysCount(group.count)),
-        trailing: selectionMode ? null : const Icon(Icons.edit_outlined, size: 20),
+        subtitle: Text(subtitleParts.join(' · ')),
+        trailing: selectionMode
+            ? null
+            : (phone.isNotEmpty
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: t.call,
+                        icon: const Icon(Icons.call, color: Brand.paid, size: 22),
+                        onPressed: () =>
+                            launchPhone(context, Uri.parse('tel:$phone')),
+                      ),
+                      IconButton(
+                        tooltip: t.whatsapp,
+                        icon: const Icon(Icons.chat, color: Brand.paid, size: 22),
+                        onPressed: () => launchPhone(context,
+                            Uri.parse('https://wa.me/${digitsOnly(phone)}')),
+                      ),
+                    ],
+                  )
+                : const Icon(Icons.chevron_right)),
       ),
-    );
-  }
-}
-
-/// Diálogo simples de um campo de texto para (re)nomear.
-class _NameDialog extends StatelessWidget {
-  final String title;
-  final String initial;
-  final TextEditingController controller;
-
-  const _NameDialog({required this.title, required this.initial, required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(title),
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        textCapitalization: TextCapitalization.words,
-        decoration: InputDecoration(labelText: t.newEmployerName),
-        onSubmitted: (v) => Navigator.pop(context, v),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(t.cancel)),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, controller.text),
-          child: Text(t.save),
-        ),
-      ],
     );
   }
 }
@@ -237,8 +209,8 @@ class _MergeDialog extends StatefulWidget {
   final int count;
   final List<String> options;
   final TextEditingController controller;
-
-  const _MergeDialog({required this.count, required this.options, required this.controller});
+  const _MergeDialog(
+      {required this.count, required this.options, required this.controller});
 
   @override
   State<_MergeDialog> createState() => _MergeDialogState();
@@ -262,7 +234,8 @@ class _MergeDialogState extends State<_MergeDialog> {
               children: widget.options
                   .map((o) => ActionChip(
                         label: Text(o),
-                        onPressed: () => setState(() => widget.controller.text = o),
+                        onPressed: () =>
+                            setState(() => widget.controller.text = o),
                       ))
                   .toList(),
             ),
@@ -283,5 +256,25 @@ class _MergeDialogState extends State<_MergeDialog> {
         ),
       ],
     );
+  }
+}
+
+/// Só dígitos — para montar o link do WhatsApp (`wa.me/<numero>`).
+String digitsOnly(String s) => s.replaceAll(RegExp(r'[^0-9]'), '');
+
+/// Abre tel:/wa.me com fallback de SnackBar se não houver app que atenda.
+Future<void> launchPhone(BuildContext context, Uri uri) async {
+  final t = AppLocalizations.of(context);
+  try {
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(t.couldNotLaunch)));
+    }
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(t.couldNotLaunch)));
+    }
   }
 }

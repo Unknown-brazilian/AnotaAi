@@ -28,7 +28,7 @@ class AppConfig {
   AppConfig._();
 
   /// Versão exibida do app (fonte única — manter em sincronia com pubspec.yaml).
-  static const String appVersion = '1.1.0';
+  static const String appVersion = '1.2.0';
 
   /// Endereço Lightning para doações (Bitcoin). Mantido Bitcoin-only.
   static const String lightningAddress = 'opt_out@walletofsatoshi.com';

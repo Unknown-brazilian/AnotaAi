@@ -122,3 +122,46 @@ class EmployerGroup {
     return result;
   }
 }
+
+/// Patrão na tela de gerenciamento/agenda: combina a contagem de diárias
+/// (derivada das entradas) com o registro de contato da agenda ([info], pode
+/// ser nulo). Um patrão pode aparecer só por ter diárias, só por estar na
+/// agenda (cadastro proativo, 0 diárias), ou ambos.
+class EmployerView {
+  final String name; // nome com `trim`; vazio = "sem nome"
+  final int entriesCount;
+  final List<String> rawNames; // variações brutas vindas das diárias
+  final Employer? info;
+
+  EmployerView(this.name, this.entriesCount, this.rawNames, this.info);
+
+  bool get isUnnamed => name.isEmpty;
+  bool get hasContact =>
+      info != null &&
+      (info!.phone.trim().isNotEmpty || (info!.notes?.trim().isNotEmpty ?? false));
+
+  /// Combina as diárias (agrupadas por nome) com a agenda de contatos.
+  static List<EmployerView> combine(
+      List<WorkEntry> entries, List<Employer> agenda) {
+    final byName = {for (final e in agenda) e.name.trim(): e};
+    final groups = EmployerGroup.fromEntries(entries);
+    final seen = <String>{};
+    final views = <EmployerView>[];
+    for (final g in groups) {
+      seen.add(g.displayName);
+      views.add(EmployerView(
+          g.displayName, g.count, g.rawNames, byName[g.displayName]));
+    }
+    // Patrões cadastrados na agenda sem nenhuma diária ainda.
+    for (final e in agenda) {
+      final n = e.name.trim();
+      if (n.isEmpty || seen.contains(n)) continue;
+      views.add(EmployerView(n, 0, [e.name], e));
+    }
+    views.sort((a, b) {
+      if (a.isUnnamed != b.isUnnamed) return a.isUnnamed ? 1 : -1;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return views;
+  }
+}

@@ -9,6 +9,7 @@ import '../../domain/services/auth_service.dart';
 import '../../domain/services/backup_service.dart';
 import '../../domain/services/binance_service.dart';
 import '../../domain/services/bitcoin_compare_service.dart';
+import '../../domain/services/contacts_service.dart';
 import '../../domain/services/fx_service.dart';
 import '../../domain/services/location_service.dart';
 import '../../domain/services/notification_service.dart';
@@ -53,6 +54,7 @@ final locationServiceProvider = Provider<LocationService>((ref) => LocationServi
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 final notificationServiceProvider = Provider<NotificationService>((ref) => NotificationService());
 final attachmentServiceProvider = Provider<AttachmentService>((ref) => AttachmentService());
+final contactsServiceProvider = Provider<ContactsService>((ref) => ContactsService());
 final pdfExportServiceProvider = Provider<PdfExportService>((ref) => PdfExportService());
 final xlsExportServiceProvider = Provider<XlsExportService>((ref) => XlsExportService());
 final backupServiceProvider = Provider<BackupService>((ref) => BackupService());
@@ -122,12 +124,17 @@ final employerBalancesProvider = Provider<List<EmployerBalance>>((ref) {
   return EmployerBalance.groupByEmployer(entries);
 });
 
-/// Lista de empregadores para a tela de gerenciamento (nome + contagem),
-/// derivada de [allEntriesProvider] — assim a lista se atualiza sozinha após
-/// um renomear/mesclar em massa.
-final employersListProvider = Provider<List<EmployerGroup>>((ref) {
+/// Agenda de patrões (contatos) — stream reativo do banco.
+final employersAgendaProvider = StreamProvider<List<Employer>>(
+    (ref) => ref.watch(databaseProvider).watchEmployers());
+
+/// Lista combinada para a tela de patrões: contagem de diárias (de
+/// [allEntriesProvider]) + contato da agenda ([employersAgendaProvider]).
+/// Atualiza sozinha após renomear/mesclar ou editar um contato.
+final employersListProvider = Provider<List<EmployerView>>((ref) {
   final entries = ref.watch(allEntriesProvider).value ?? const [];
-  return EmployerGroup.fromEntries(entries);
+  final agenda = ref.watch(employersAgendaProvider).value ?? const [];
+  return EmployerView.combine(entries, agenda);
 });
 
 /// Meta de poupança atual.
