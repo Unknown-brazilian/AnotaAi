@@ -91,6 +91,9 @@ class AppDatabase extends _$AppDatabase {
   /// Construtor usado em testes / restauração a partir de um arquivo específico.
   AppDatabase.forFile(File file) : super(NativeDatabase(file));
 
+  /// Construtor para testes com um executor arbitrário (ex.: banco em memória).
+  AppDatabase.forExecutor(QueryExecutor executor) : super(executor);
+
   @override
   int get schemaVersion => 1;
 
@@ -173,6 +176,49 @@ class AppDatabase extends _$AppDatabase {
   Future<List<String>> distinctEmployers() => distinctValues(workEntries.employerName);
   Future<List<String>> distinctPlaces() => distinctValues(workEntries.placeName);
   Future<List<String>> distinctServiceTypes() => distinctValues(workEntries.serviceType);
+
+  // ---- Gerenciamento de empregadores (renomear/mesclar em massa) ----
+  //
+  // Tudo opera sobre o campo de texto livre `employerName` — NÃO há tabela nova
+  // nem mudança de schema. Como as telas leem de streams reativos
+  // (`watchAllEntries`), um UPDATE em massa aqui propaga sozinho.
+
+  /// Nomes de empregadores distintos (com `trim`, ignorando vazios) e a
+  /// contagem de diárias de cada um, ordenado por nome.
+  Future<List<({String name, int count})>> employersWithCounts() async {
+    final count = workEntries.id.count();
+    final query = selectOnly(workEntries)
+      ..addColumns([workEntries.employerName, count])
+      ..groupBy([workEntries.employerName])
+      ..orderBy([OrderingTerm.asc(workEntries.employerName)]);
+    final rows = await query.get();
+    return rows
+        .map((r) => (
+              name: (r.read(workEntries.employerName) ?? '').trim(),
+              count: r.read(count) ?? 0,
+            ))
+        .where((e) => e.name.isNotEmpty)
+        .toList();
+  }
+
+  /// Renomeia em massa todas as diárias de [oldName] para [newName].
+  /// Retorna o nº de linhas afetadas.
+  Future<int> renameEmployer(String oldName, String newName) {
+    return (update(workEntries)..where((t) => t.employerName.equals(oldName)))
+        .write(WorkEntriesCompanion(employerName: Value(newName.trim())));
+  }
+
+  /// Mescla vários nomes ([fromNames]) em um só ([intoName]) — usado para
+  /// juntar duplicados. Retorna o total de linhas afetadas.
+  Future<int> mergeEmployers(List<String> fromNames, String intoName) async {
+    final target = intoName.trim();
+    var affected = 0;
+    for (final from in fromNames) {
+      if (from == target) continue;
+      affected += await renameEmployer(from, target);
+    }
+    return affected;
+  }
 
   // ---- SavingsGoal ----
 

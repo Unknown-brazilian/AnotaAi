@@ -122,6 +122,14 @@ final employerBalancesProvider = Provider<List<EmployerBalance>>((ref) {
   return EmployerBalance.groupByEmployer(entries);
 });
 
+/// Lista de empregadores para a tela de gerenciamento (nome + contagem),
+/// derivada de [allEntriesProvider] — assim a lista se atualiza sozinha após
+/// um renomear/mesclar em massa.
+final employersListProvider = Provider<List<EmployerGroup>>((ref) {
+  final entries = ref.watch(allEntriesProvider).value ?? const [];
+  return EmployerGroup.fromEntries(entries);
+});
+
 /// Meta de poupança atual.
 final savingsGoalProvider = StreamProvider<SavingsGoal?>(
     (ref) => ref.watch(databaseProvider).watchCurrentGoal());
