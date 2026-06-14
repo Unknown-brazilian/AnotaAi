@@ -88,3 +88,37 @@ class EmployerBalance {
     return result;
   }
 }
+
+/// Um empregador na tela de gerenciamento: nome de exibição (já com `trim`),
+/// quantas diárias tem e quais valores brutos de `employerName` caem neste
+/// grupo (pode haver variações com espaços). Renomear/mesclar usa [rawNames]
+/// para alcançar todas as variações de uma vez.
+class EmployerGroup {
+  /// Nome com `trim`; vazio significa "sem nome".
+  final String displayName;
+  final int count;
+  final List<String> rawNames;
+
+  EmployerGroup(this.displayName, this.count, this.rawNames);
+
+  bool get isUnnamed => displayName.isEmpty;
+
+  /// Agrupa as diárias por `employerName.trim()`, incluindo o grupo "sem nome"
+  /// (entradas com nome vazio), ordenado por nome (sem nome por último).
+  static List<EmployerGroup> fromEntries(List<WorkEntry> entries) {
+    final groups = <String, ({int count, Set<String> raw})>{};
+    for (final e in entries) {
+      final key = e.employerName.trim();
+      final g = groups.putIfAbsent(key, () => (count: 0, raw: <String>{}));
+      groups[key] = (count: g.count + 1, raw: g.raw..add(e.employerName));
+    }
+    final result = groups.entries
+        .map((kv) => EmployerGroup(kv.key, kv.value.count, kv.value.raw.toList()))
+        .toList();
+    result.sort((a, b) {
+      if (a.isUnnamed != b.isUnnamed) return a.isUnnamed ? 1 : -1;
+      return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+    });
+    return result;
+  }
+}

@@ -190,6 +190,54 @@ class AppLocalizations {
   String get startSavingBitcoin => _t('Comece a poupar em Bitcoin', 'Start saving in Bitcoin', 'Empieza a ahorrar en Bitcoin');
   String get openBinanceSignup => _t('Abrir cadastro na Binance', 'Open Binance sign-up', 'Abrir registro en Binance');
 
+  // ---- Gerenciar empregadores ----
+  String get manageEmployers => _t('Gerenciar empregadores', 'Manage employers', 'Gestionar patrones');
+  String get manageEmployersSub => _t(
+      'Renomear ou mesclar nomes de patrões',
+      'Rename or merge employer names',
+      'Renombrar o combinar nombres de patrones');
+  String get employersEmpty => _t(
+      'Registre diárias para ver e organizar os patrões aqui.',
+      'Add entries to see and organize employers here.',
+      'Registra jornales para ver y organizar los patrones aquí.');
+  String renameEmployerTitle(String name) =>
+      _t('Renomear "$name"', 'Rename "$name"', 'Renombrar "$name"');
+  String get rename => _t('Renomear', 'Rename', 'Renombrar');
+  String get merge => _t('Mesclar', 'Merge', 'Combinar');
+  String get newEmployerName => _t('Novo nome', 'New name', 'Nuevo nombre');
+  String get nameEmptyError => _t('Informe um nome.', 'Enter a name.', 'Ingresa un nombre.');
+  String employerRenamed(int n) => _t(
+      '$n diária(s) atualizada(s)', '$n entry(ies) updated', '$n jornal(es) actualizado(s)');
+  String get selectToMerge => _t(
+      'Selecione 2 ou mais para mesclar', 'Select 2 or more to merge', 'Selecciona 2 o más para combinar');
+  String get mergeInto => _t('Mesclar em…', 'Merge into…', 'Combinar en…');
+  String mergeIntoTitle(int n) => _t(
+      'Mesclar $n nomes em um só', 'Merge $n names into one', 'Combinar $n nombres en uno');
+  String get mergeIntoHint => _t(
+      'Escolha o nome final (ou digite um novo):',
+      'Choose the final name (or type a new one):',
+      'Elige el nombre final (o escribe uno nuevo):');
+  String get assignName => _t('Atribuir nome', 'Assign name', 'Asignar nombre');
+
+  // ---- Sobre o app ----
+  String get aboutApp => _t('Sobre o app', 'About the app', 'Acerca de la app');
+  String get madeBy => _t('Feito por unknown_BTC_usr e Claude',
+      'Made by unknown_BTC_usr and Claude', 'Hecho por unknown_BTC_usr y Claude');
+  String versionLabel(String v) => _t('Versão $v', 'Version $v', 'Versión $v');
+  String get supportProject => _t('Apoie o projeto', 'Support the project', 'Apoya el proyecto');
+  String get supportProjectSub => _t(
+      'Doação em Bitcoin pela rede Lightning',
+      'Bitcoin donation over the Lightning network',
+      'Donación en Bitcoin por la red Lightning');
+  String get donateLightning => _t(
+      'Doar com Bitcoin (Lightning)', 'Donate with Bitcoin (Lightning)', 'Donar con Bitcoin (Lightning)');
+  String get copy => _t('Copiar', 'Copy', 'Copiar');
+  String get addressCopied => _t('Endereço copiado', 'Address copied', 'Dirección copiada');
+  String get addressCopiedPaste => _t(
+      'Endereço copiado — cole na sua carteira',
+      'Address copied — paste it into your wallet',
+      'Dirección copiada — pégala en tu billetera');
+
   // ---- Formulário de diária ----
   String get editEntry => _t('Editar diária', 'Edit entry', 'Editar jornal');
   String get workDate => _t('Data do trabalho', 'Work date', 'Fecha del trabajo');

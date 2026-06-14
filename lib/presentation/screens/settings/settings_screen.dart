@@ -13,6 +13,8 @@ import '../../../core/enums.dart';
 import '../../../domain/services/settings_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
+import '../about/about_screen.dart';
+import '../employers/employers_screen.dart';
 import '../profile/profile_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -79,6 +81,15 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: Text(t.showBrlSub),
             value: s.showBrl,
             onChanged: (v) => notifier.update(s.copyWith(showBrl: v)),
+          ),
+          ListTile(
+            leading: const Icon(Icons.badge_outlined),
+            title: Text(t.manageEmployers),
+            subtitle: Text(t.manageEmployersSub),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const EmployersScreen()),
+            ),
           ),
 
           _header(t.navBitcoin),
@@ -159,8 +170,12 @@ class SettingsScreen extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('AnotAí'),
-            subtitle: Text('${t.appTagline} · v1.0.2'),
+            title: Text(t.aboutApp),
+            subtitle: Text('${t.appTagline} · v${AppConfig.appVersion}'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AboutScreen()),
+            ),
           ),
           const SizedBox(height: 24),
         ],
