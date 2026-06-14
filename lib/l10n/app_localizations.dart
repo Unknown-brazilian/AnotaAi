@@ -190,16 +190,46 @@ class AppLocalizations {
   String get startSavingBitcoin => _t('Comece a poupar em Bitcoin', 'Start saving in Bitcoin', 'Empieza a ahorrar en Bitcoin');
   String get openBinanceSignup => _t('Abrir cadastro na Binance', 'Open Binance sign-up', 'Abrir registro en Binance');
 
-  // ---- Gerenciar empregadores ----
-  String get manageEmployers => _t('Gerenciar empregadores', 'Manage employers', 'Gestionar patrones');
+  // ---- Patrões (agenda / contatos) ----
+  String get manageEmployers => _t('Patrões', 'Employers', 'Patrones');
   String get manageEmployersSub => _t(
-      'Renomear ou mesclar nomes de patrões',
-      'Rename or merge employer names',
-      'Renombrar o combinar nombres de patrones');
+      'Nomes, contatos e histórico',
+      'Names, contacts and history',
+      'Nombres, contactos e historial');
   String get employersEmpty => _t(
-      'Registre diárias para ver e organizar os patrões aqui.',
-      'Add entries to see and organize employers here.',
-      'Registra jornales para ver y organizar los patrones aquí.');
+      'Adicione um patrão ou registre diárias para vê-los aqui.',
+      'Add an employer or record entries to see them here.',
+      'Añade un patrón o registra jornales para verlos aquí.');
+  String get addEmployer => _t('Adicionar patrão', 'Add employer', 'Añadir patrón');
+  String get editEmployer => _t('Editar patrão', 'Edit employer', 'Editar patrón');
+  String get phoneField => _t('Telefone / WhatsApp', 'Phone / WhatsApp', 'Teléfono / WhatsApp');
+  String get importFromContacts =>
+      _t('Importar dos contatos', 'Import from contacts', 'Importar de contactos');
+  String get syncToDevice => _t(
+      'Salvar nos contatos do aparelho',
+      'Save to phone contacts',
+      'Guardar en contactos del teléfono');
+  String get syncToDeviceSub => _t(
+      'Sincroniza com a conta Google no Android',
+      'Syncs with your Google account on Android',
+      'Sincroniza con tu cuenta Google en Android');
+  String get call => _t('Ligar', 'Call', 'Llamar');
+  String get whatsapp => _t('WhatsApp', 'WhatsApp', 'WhatsApp');
+  String get contactsPermissionDenied => _t(
+      'Permissão de contatos negada.',
+      'Contacts permission denied.',
+      'Permiso de contactos denegado.');
+  String get contactSaved => _t('Contato salvo', 'Contact saved', 'Contacto guardado');
+  String get savedToDevice => _t(
+      'Salvo nos contatos do aparelho', 'Saved to phone contacts', 'Guardado en los contactos');
+  String get removeContact => _t('Remover contato', 'Remove contact', 'Quitar contacto');
+  String get removeContactConfirm => _t(
+      'Remove só o contato da agenda. As diárias deste patrão continuam.',
+      'Removes only the address-book contact. This employer\'s entries are kept.',
+      'Quita solo el contacto de la agenda. Los jornales de este patrón se mantienen.');
+  String get noEntriesYet => _t('Sem diárias ainda', 'No entries yet', 'Sin jornales aún');
+  String get couldNotLaunch => _t(
+      'Não foi possível abrir.', "Couldn't open.", 'No se pudo abrir.');
   String renameEmployerTitle(String name) =>
       _t('Renomear "$name"', 'Rename "$name"', 'Renombrar "$name"');
   String get rename => _t('Renomear', 'Rename', 'Renombrar');
