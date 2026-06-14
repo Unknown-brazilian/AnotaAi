@@ -12,6 +12,7 @@ import '../../../core/format.dart';
 import '../../../data/database/database.dart';
 import '../../../domain/calc.dart';
 import '../../../domain/services/location_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
 import '../entry/entry_form_screen.dart';
@@ -22,13 +23,14 @@ class EntryDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final entries = ref.watch(allEntriesProvider).value;
     final entry = entries?.where((e) => e.id == entryId).firstOrNull;
 
     if (entry == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const EmptyState(icon: Icons.search_off, message: 'Diária não encontrada.'),
+        body: EmptyState(icon: Icons.search_off, message: t.entryNotFound),
       );
     }
 
@@ -37,18 +39,18 @@ class EntryDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Diária'),
+        title: Text(t.entry),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            tooltip: 'Editar',
+            tooltip: t.edit,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => EntryFormScreen(existing: entry)),
             ),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
-            tooltip: 'Excluir',
+            tooltip: t.delete,
             onPressed: () => _confirmDelete(context, ref, entry),
           ),
         ],
@@ -70,20 +72,20 @@ class EntryDetailScreen extends ConsumerWidget {
               style: TextStyle(color: Theme.of(context).hintColor, fontSize: 16)),
           const Divider(height: 28),
 
-          _row('Trabalhador', entry.workerName),
-          _row('Patrão / empresa', entry.employerName),
-          _row('Lugar / obra', entry.placeName),
-          _row('Tipo de serviço', entry.serviceType),
-          _row('Forma', entry.paymentMode.name == 'diaria' ? 'Por diária' : 'Por hora'),
+          _row(t.worker, entry.workerName),
+          _row(t.employerCompany, entry.employerName),
+          _row(t.place, entry.placeName),
+          _row(t.serviceType, entry.serviceType),
+          _row(t.form, entry.paymentMode.name == 'diaria' ? t.byDay : t.byHour),
           if (entry.startMinutes != null && entry.endMinutes != null)
-            _row('Horário',
+            _row(t.schedule,
                 '${Fmt.minutesToHHmm(entry.startMinutes!)} – ${Fmt.minutesToHHmm(entry.endMinutes!)}  (${Fmt.hours(hours)})'),
-          _row('Já recebido', Fmt.money(entry.amountPaid, entry.currency)),
+          _row(t.received, Fmt.money(entry.amountPaid, entry.currency)),
           if (!entry.isPaid)
-            _row('Pendente',
+            _row(t.pending,
                 Fmt.money((entry.amountDue - entry.amountPaid).clamp(0, double.infinity), entry.currency)),
           if (entry.notes != null && entry.notes!.trim().isNotEmpty)
-            _row('Observações', entry.notes!),
+            _row(t.notes, entry.notes!),
 
           const SizedBox(height: 12),
           FilledButton.icon(
@@ -94,13 +96,13 @@ class EntryDetailScreen extends ConsumerWidget {
                 .read(databaseProvider)
                 .markPaidBulk([entry], paid: !entry.isPaid),
             icon: Icon(entry.isPaid ? Icons.schedule : Icons.check_circle),
-            label: Text(entry.isPaid ? 'Marcar como pendente' : 'Marcar como pago'),
+            label: Text(entry.isPaid ? t.markPending : t.markPaid),
           ),
 
           // Localização
           if (entry.latitude != null && entry.longitude != null) ...[
             const Divider(height: 32),
-            Text('Localização', style: Theme.of(context).textTheme.titleMedium),
+            Text(t.location, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 4),
             if (entry.address != null) Text(entry.address!),
             Text('${entry.latitude!.toStringAsFixed(5)}, ${entry.longitude!.toStringAsFixed(5)}',
@@ -112,15 +114,15 @@ class EntryDetailScreen extends ConsumerWidget {
                   child: OutlinedButton.icon(
                     onPressed: () => _openMaps(entry.latitude!, entry.longitude!),
                     icon: const Icon(Icons.map),
-                    label: const Text('Abrir no Maps'),
+                    label: Text(t.openInMaps),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _shareLocation(entry),
+                    onPressed: () => _shareLocation(entry, t),
                     icon: const Icon(Icons.share_location),
-                    label: const Text('Compartilhar'),
+                    label: Text(t.share),
                   ),
                 ),
               ],
@@ -130,7 +132,7 @@ class EntryDetailScreen extends ConsumerWidget {
           // Fotos
           if (attachments.isNotEmpty) ...[
             const Divider(height: 32),
-            Text('Fotos / comprovantes', style: Theme.of(context).textTheme.titleMedium),
+            Text(t.photosReceipts, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             _Attachments(filenames: attachments),
           ],
@@ -158,27 +160,28 @@ class EntryDetailScreen extends ConsumerWidget {
     await launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _shareLocation(WorkEntry e) async {
+  Future<void> _shareLocation(WorkEntry e, AppLocalizations t) async {
     final url = LocationService.googleMapsUrl(e.latitude!, e.longitude!);
-    final place = e.placeName.trim().isEmpty ? 'a obra' : e.placeName.trim();
+    final place = e.placeName.trim().isEmpty ? t.theSite : e.placeName.trim();
     await SharePlus.instance.share(ShareParams(
-      text: 'Local de $place:\n$url',
-      subject: 'Localização da obra',
+      text: t.locationShare(place, url),
+      subject: t.locationLabel,
     ));
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref, WorkEntry e) async {
+    final t = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Excluir diária?'),
-        content: const Text('Esta ação não pode ser desfeita.'),
+        title: Text(t.deleteEntryQ),
+        content: Text(t.cannotUndo),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t.cancel)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Excluir'),
+            child: Text(t.delete),
           ),
         ],
       ),

@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/brand.dart';
 import '../../../core/enums.dart';
 import '../../../domain/services/settings_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../profile/profile_screen.dart';
 
@@ -21,48 +22,49 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Configurações')),
+      appBar: AppBar(title: Text(t.settings)),
       body: ListView(
         children: [
-          _header('Conta'),
+          _header(t.account),
           ListTile(
             leading: const Icon(Icons.account_circle, color: Brand.orange),
-            title: const Text('Perfil do usuário'),
+            title: Text(t.profile),
             subtitle: Text(s.defaultWorkerName.isEmpty
-                ? 'Nome e segurança (PIN/biometria)'
-                : '${s.defaultWorkerName} · nome e segurança'),
+                ? t.profileNameSecurity
+                : s.defaultWorkerName),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ProfileScreen()),
             ),
           ),
 
-          _header('Aparência'),
+          _header(t.appearance),
           ListTile(
             leading: const Icon(Icons.brightness_6),
-            title: const Text('Tema'),
+            title: Text(t.theme),
             subtitle: Text(switch (s.themeMode) {
-              AppThemeMode.system => 'Seguir o sistema',
-              AppThemeMode.light => 'Claro',
-              AppThemeMode.dark => 'Escuro',
+              AppThemeMode.system => t.themeSystem,
+              AppThemeMode.light => t.themeLight,
+              AppThemeMode.dark => t.themeDark,
             }),
             trailing: DropdownButton<AppThemeMode>(
               value: s.themeMode,
               onChanged: (v) => notifier.update(s.copyWith(themeMode: v)),
-              items: const [
-                DropdownMenuItem(value: AppThemeMode.system, child: Text('Sistema')),
-                DropdownMenuItem(value: AppThemeMode.light, child: Text('Claro')),
-                DropdownMenuItem(value: AppThemeMode.dark, child: Text('Escuro')),
+              items: [
+                DropdownMenuItem(value: AppThemeMode.system, child: Text(t.system)),
+                DropdownMenuItem(value: AppThemeMode.light, child: Text(t.themeLight)),
+                DropdownMenuItem(value: AppThemeMode.dark, child: Text(t.themeDark)),
               ],
             ),
           ),
 
-          _header('Valores'),
+          _header(t.values),
           ListTile(
             leading: const Icon(Icons.euro),
-            title: const Text('Moeda padrão'),
+            title: Text(t.defaultCurrency),
             trailing: DropdownButton<Currency>(
               value: s.defaultCurrency,
               onChanged: (v) => notifier.update(s.copyWith(defaultCurrency: v)),
@@ -73,17 +75,17 @@ class SettingsScreen extends ConsumerWidget {
           ),
           SwitchListTile(
             secondary: const Icon(Icons.currency_exchange),
-            title: const Text('Mostrar valores em Real (BRL)'),
-            subtitle: const Text('Exibe a conversão ao lado de euro/libra'),
+            title: Text(t.showBrlTitle),
+            subtitle: Text(t.showBrlSub),
             value: s.showBrl,
             onChanged: (v) => notifier.update(s.copyWith(showBrl: v)),
           ),
 
-          _header('Bitcoin'),
+          _header(t.navBitcoin),
           ListTile(
             leading: const Icon(Icons.percent),
-            title: const Text('Percentual de poupança em Bitcoin'),
-            subtitle: Text('${(s.bitcoinSavingsPct * 100).round()}% dos ganhos'),
+            title: Text(t.bitcoinSavingsPct),
+            subtitle: Text(t.pctOfEarnings((s.bitcoinSavingsPct * 100).round())),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -97,20 +99,21 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
 
-          _header('Lembretes'),
+          _header(t.reminders),
           SwitchListTile(
             secondary: const Icon(Icons.notifications_active),
-            title: const Text('Lembrete diário'),
+            title: Text(t.dailyReminder),
             subtitle: Text(s.reminderEnabled
-                ? 'Todo dia às ${s.reminderHour.toString().padLeft(2, '0')}:${s.reminderMinute.toString().padLeft(2, '0')}'
-                : 'Desligado'),
+                ? t.dailyAt(
+                    '${s.reminderHour.toString().padLeft(2, '0')}:${s.reminderMinute.toString().padLeft(2, '0')}')
+                : t.off),
             value: s.reminderEnabled,
             onChanged: (v) => _toggleReminder(context, ref, s, v),
           ),
           if (s.reminderEnabled)
             ListTile(
               leading: const Icon(Icons.schedule),
-              title: const Text('Horário do lembrete'),
+              title: Text(t.reminderTime),
               trailing: TextButton(
                 onPressed: () => _pickReminderTime(context, ref, s),
                 child: Text(
@@ -118,39 +121,46 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
 
-          _header('Backup e restauração'),
+          _header(t.backupRestore),
           ListTile(
             leading: const Icon(Icons.backup),
-            title: const Text('Fazer backup'),
-            subtitle: const Text('Salva banco + fotos em um arquivo ZIP'),
+            title: Text(t.doBackup),
+            subtitle: Text(t.doBackupSub),
             onTap: () => _doBackup(context, ref),
           ),
           ListTile(
             leading: const Icon(Icons.restore),
-            title: const Text('Restaurar backup'),
-            subtitle: const Text('Importa um arquivo ZIP do AnotAí'),
+            title: Text(t.restoreBackup),
+            subtitle: Text(t.restoreBackupSub),
             onTap: () => _doRestore(context, ref),
           ),
 
-          _header('Idioma'),
-          const ListTile(
-            leading: Icon(Icons.language),
-            title: Text('Português (Brasil)'),
-            subtitle: Text('Inglês e Espanhol em breve'),
+          _header(t.language),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: Text(t.language),
+            subtitle: Text(AppLocalizations.nameOf(s.locale)),
+            trailing: DropdownButton<String>(
+              value: s.locale,
+              onChanged: (v) => notifier.update(s.copyWith(locale: v)),
+              items: AppLocalizations.supportedCodes
+                  .map((c) => DropdownMenuItem(value: c, child: Text(AppLocalizations.nameOf(c))))
+                  .toList(),
+            ),
           ),
 
-          _header('Sobre'),
+          _header(t.about),
           ListTile(
             leading: const Icon(Icons.currency_bitcoin, color: Brand.orange),
-            title: const Text('Comece a poupar em Bitcoin'),
-            subtitle: const Text('Abrir cadastro na Binance'),
+            title: Text(t.startSavingBitcoin),
+            subtitle: Text(t.openBinanceSignup),
             onTap: () => launchUrl(Uri.parse(AppConfig.binanceReferralUrl),
                 mode: LaunchMode.externalApplication),
           ),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('AnotAí'),
-            subtitle: Text('Controle de diárias · v1.0.1'),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('AnotAí'),
+            subtitle: Text('${t.appTagline} · v1.0.2'),
           ),
           const SizedBox(height: 24),
         ],
@@ -174,7 +184,7 @@ class SettingsScreen extends ConsumerWidget {
     }
     final granted = await notif.requestPermission();
     if (!granted) {
-      if (context.mounted) _snack(context, 'Permissão de notificações negada.');
+      if (context.mounted) _snack(context, AppLocalizations.of(context).notifPermissionDenied);
       return;
     }
     await notif.scheduleDailyReminder(s.reminderHour, s.reminderMinute);
@@ -194,28 +204,29 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _doBackup(BuildContext context, WidgetRef ref) async {
+    final t = AppLocalizations.of(context);
     try {
       final stamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
       final file = await ref.read(backupServiceProvider).createBackup(stamp: stamp);
       await SharePlus.instance.share(ShareParams(
         files: [XFile(file.path, mimeType: 'application/zip')],
-        text: 'Backup do AnotAí',
+        text: t.backupShareText,
       ));
     } catch (e) {
-      if (context.mounted) _snack(context, 'Falha no backup: $e');
+      if (context.mounted) _snack(context, t.backupFail(e));
     }
   }
 
   Future<void> _doRestore(BuildContext context, WidgetRef ref) async {
+    final t = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Restaurar backup'),
-        content: const Text(
-            'Isto substitui TODOS os dados atuais pelos do arquivo. O app será fechado ao final — reabra para concluir. Continuar?'),
+        title: Text(t.restoreBackup),
+        content: Text(t.restoreConfirm),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Restaurar')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(t.restore)),
         ],
       ),
     );
@@ -232,19 +243,19 @@ class SettingsScreen extends ConsumerWidget {
         await showDialog<void>(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('Backup restaurado'),
-            content: const Text('Reabra o AnotAí para ver seus dados restaurados.'),
+            title: Text(t.restoreDone),
+            content: Text(t.restoreReopen),
             actions: [
               FilledButton(
                 onPressed: () => SystemNavigator.pop(),
-                child: const Text('Fechar app'),
+                child: Text(t.closeApp),
               ),
             ],
           ),
         );
       }
     } catch (e) {
-      if (context.mounted) _snack(context, 'Falha ao restaurar: $e');
+      if (context.mounted) _snack(context, t.restoreFail(e));
     }
   }
 

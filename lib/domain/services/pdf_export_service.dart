@@ -19,7 +19,9 @@ class PdfExportService {
   static const _grey = PdfColor.fromInt(0xFF666666);
 
   Future<Uint8List> build(ReportData data) async {
-    final doc = pw.Document();
+    // Fonte embutida com €/£/$ — as fontes padrão do PDF (Helvetica) não têm o €.
+    final theme = await _buildTheme();
+    final doc = pw.Document(theme: theme);
     final logo = await _loadLogo();
 
     doc.addPage(
@@ -38,6 +40,18 @@ class PdfExportService {
       ),
     );
     return doc.save();
+  }
+
+  /// Tema do PDF com Roboto (Regular/Bold) — garante os símbolos de moeda.
+  /// Se o asset falhar, cai no tema padrão (Helvetica).
+  Future<pw.ThemeData?> _buildTheme() async {
+    try {
+      final regular = pw.Font.ttf(await rootBundle.load('assets/fonts/Roboto-Regular.ttf'));
+      final bold = pw.Font.ttf(await rootBundle.load('assets/fonts/Roboto-Bold.ttf'));
+      return pw.ThemeData.withFont(base: regular, bold: bold);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<pw.MemoryImage?> _loadLogo() async {

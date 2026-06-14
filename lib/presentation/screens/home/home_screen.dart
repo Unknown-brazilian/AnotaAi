@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/brand.dart';
-import '../../../l10n/strings.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../domain/summary.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
@@ -30,6 +30,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final settings = ref.watch(settingsProvider);
     final monthEntries = ref.watch(currentMonthEntriesProvider);
     final recent = ref.watch(allEntriesProvider);
@@ -46,14 +47,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 : null),
         actions: [
           IconButton(
-            tooltip: 'Perfil',
+            tooltip: t.profileShort,
             icon: const Icon(Icons.account_circle_outlined),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ProfileScreen()),
             ),
           ),
           IconButton(
-            tooltip: S.settings,
+            tooltip: t.settings,
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -63,7 +64,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       body: monthEntries.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(child: Text(t.error(e))),
         data: (entries) {
           final summary = WorkSummary.fromEntries(entries);
           return ListView(
@@ -73,7 +74,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                 child: Row(
                   children: [
-                    Text('Resumo do mês',
+                    Text(t.monthSummary,
                         style: Theme.of(context).textTheme.titleLarge),
                     const Spacer(),
                     Row(
@@ -89,12 +90,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               if (summary.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(24),
+                Padding(
+                  padding: const EdgeInsets.all(24),
                   child: EmptyState(
                     icon: Icons.note_add_outlined,
-                    message:
-                        'Nenhuma diária neste mês ainda.\nToque em "Nova diária" para começar.',
+                    message: t.noEntriesMonth,
                   ),
                 )
               else
@@ -109,21 +109,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     MaterialPageRoute(builder: (_) => const EntryFormScreen()),
                   ),
                   icon: const Icon(Icons.add, size: 26),
-                  label: const Text('Nova diária'),
+                  label: Text(t.newEntry),
                 ),
               ),
               if (_showBrl && brlRate == null)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
-                    'Câmbio do Real indisponível agora (sem internet).',
-                    style: TextStyle(fontSize: 12, color: Brand.pending),
+                    t.brlUnavailable,
+                    style: const TextStyle(fontSize: 12, color: Brand.pending),
                   ),
                 ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-                child: Text('Diárias recentes',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                child: Text(t.recentEntries,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
               ...?recent.value?.take(10).map((e) => EntryTile(entry: e)),
               if ((recent.value ?? []).isEmpty)

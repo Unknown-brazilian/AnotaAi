@@ -5,6 +5,7 @@ import '../../../core/brand.dart';
 import '../../../core/format.dart';
 import '../../../domain/services/report_data.dart';
 import '../../../domain/summary.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
 import '../export/export_screen.dart';
@@ -15,25 +16,26 @@ class WhoOwesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final balances = ref.watch(employerBalancesProvider);
     final withPending = balances.where((b) => b.pendingSortKey > 0).toList();
     final settled = balances.where((b) => b.pendingSortKey <= 0).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Quem me deve')),
+      appBar: AppBar(title: Text(t.whoOwesMe)),
       body: balances.isEmpty
-          ? const EmptyState(
+          ? EmptyState(
               icon: Icons.person_search,
-              message: 'Cadastre diárias para ver quanto cada patrão te deve.')
+              message: t.whoOwesEmpty)
           : ListView(
               padding: const EdgeInsets.only(bottom: 120),
               children: [
                 if (withPending.isNotEmpty) ...[
-                  const _SectionHeader('Com saldo em aberto'),
+                  _SectionHeader(t.withOpenBalance),
                   ...withPending.map((b) => _EmployerCard(balance: b)),
                 ],
                 if (settled.isNotEmpty) ...[
-                  const _SectionHeader('Tudo quitado'),
+                  _SectionHeader(t.allSettled),
                   ...settled.map((b) => _EmployerCard(balance: b)),
                 ],
               ],
@@ -58,7 +60,8 @@ class _EmployerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final openCount = balance.summary.totals.fold<int>(0, (s, t) => s + t.openCount);
+    final t = AppLocalizations.of(context);
+    final openCount = balance.summary.totals.fold<int>(0, (s, x) => s + x.openCount);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       child: Padding(
@@ -81,31 +84,31 @@ class _EmployerCard extends StatelessWidget {
                       color: Brand.pending.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text('$openCount em aberto',
+                    child: Text(t.openCount(openCount),
                         style: const TextStyle(color: Brand.pending, fontSize: 12)),
                   ),
               ],
             ),
             const SizedBox(height: 10),
-            ...balance.summary.totals.map((t) => Padding(
+            ...balance.summary.totals.map((ct) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 3),
                   child: Row(
                     children: [
-                      Text('${t.currency.code}:',
+                      Text('${ct.currency.code}:',
                           style: const TextStyle(fontWeight: FontWeight.w600)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Wrap(
                           spacing: 12,
                           children: [
-                            Text('Trabalhado ${Fmt.money(t.due, t.currency)}',
+                            Text(t.worked(Fmt.money(ct.due, ct.currency)),
                                 style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12)),
-                            Text('Recebido ${Fmt.money(t.paid, t.currency)}',
+                            Text(t.receivedAmount(Fmt.money(ct.paid, ct.currency)),
                                 style: const TextStyle(color: Brand.paid, fontSize: 12)),
                           ],
                         ),
                       ),
-                      Text(Fmt.money(t.pending, t.currency),
+                      Text(Fmt.money(ct.pending, ct.currency),
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, color: Brand.pending, fontSize: 15)),
                     ],
@@ -117,7 +120,7 @@ class _EmployerCard extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: () => _exportEmployer(context, balance),
                 icon: const Icon(Icons.picture_as_pdf, size: 18),
-                label: const Text('Extrato p/ cobrar'),
+                label: Text(t.statementToCharge),
               ),
             ),
           ],
@@ -127,10 +130,11 @@ class _EmployerCard extends StatelessWidget {
   }
 
   void _exportEmployer(BuildContext context, EmployerBalance b) {
+    final t = AppLocalizations.of(context);
     final data = ReportData(
-      title: 'Extrato — ${b.employerName}',
+      title: t.employerStatementTitle(b.employerName),
       workerName: b.entries.isNotEmpty ? b.entries.first.workerName : '',
-      periodLabel: 'Patrão: ${b.employerName}',
+      periodLabel: t.employerLabel(b.employerName),
       entries: b.entries,
       summary: b.summary,
     );

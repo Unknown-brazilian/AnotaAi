@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/brand.dart';
 import '../../../domain/services/report_data.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 
 /// Gera o extrato em PDF/XLS e oferece compartilhamento direto (WhatsApp etc.).
@@ -30,7 +31,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Falha ao exportar: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).exportFail(e))),
         );
       }
     } finally {
@@ -81,9 +82,10 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final d = widget.data;
     return Scaffold(
-      appBar: AppBar(title: const Text('Exportar')),
+      appBar: AppBar(title: Text(t.exportTitle)),
       body: Stack(
         children: [
           ListView(
@@ -98,47 +100,47 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                       Text(d.title, style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 4),
                       Text(d.periodLabel),
-                      if (d.workerName.trim().isNotEmpty) Text('Trabalhador: ${d.workerName}'),
-                      Text('${d.entries.length} diária(s) · ${d.summary.totalDays} dia(s)'),
+                      if (d.workerName.trim().isNotEmpty) Text('${t.worker}: ${d.workerName}'),
+                      Text('${t.daysCount(d.entries.length)} · ${t.dayCount(d.summary.totalDays)}'),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('PDF (recomendado para enviar ou guardar)',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(t.pdfRecommended,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               FilledButton.icon(
                 onPressed: _busy ? null : _pdfShare,
                 icon: const Icon(Icons.picture_as_pdf),
-                label: const Text('Gerar PDF e compartilhar'),
+                label: Text(t.pdfGenerateShare),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _busy ? null : _pdfPreview,
                 icon: const Icon(Icons.visibility),
-                label: const Text('Visualizar / imprimir PDF'),
+                label: Text(t.pdfPreview),
               ),
               const Divider(height: 32),
-              const Text('Planilha', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(t.spreadsheet, style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _busy ? null : _xlsShare,
                 icon: const Icon(Icons.table_chart),
-                label: const Text('Gerar planilha (XLS) e compartilhar'),
+                label: Text(t.xlsGenerateShare),
               ),
             ],
           ),
           if (_busy)
             Container(
               color: Colors.black54,
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: Brand.orange),
-                    SizedBox(height: 12),
-                    Text('Gerando arquivo...', style: TextStyle(color: Colors.white)),
+                    const CircularProgressIndicator(color: Brand.orange),
+                    const SizedBox(height: 12),
+                    Text(t.generatingFile, style: const TextStyle(color: Colors.white)),
                   ],
                 ),
               ),

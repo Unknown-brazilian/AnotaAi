@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import '../core/format.dart';
+
 /// Tipos de período suportados no Extrato/Relatório.
 enum PeriodType { week, month, quarter, semester, year }
 
@@ -86,11 +88,11 @@ class PeriodCalculator {
     final r = rangeFor(type, anchor);
     switch (type) {
       case PeriodType.week:
-        final df = DateFormat('dd/MM', 'pt_BR');
+        final df = DateFormat('dd/MM', Fmt.locale);
         return '${df.format(r.start)} – ${df.format(r.lastDay)}';
       case PeriodType.month:
         return toBeginningOfSentenceCase(
-            DateFormat('MMMM yyyy', 'pt_BR').format(r.start))!;
+            DateFormat('MMMM yyyy', Fmt.locale).format(r.start))!;
       case PeriodType.quarter:
         final q = ((r.start.month - 1) ~/ 3) + 1;
         return '$qº Tri ${r.start.year}';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../l10n/strings.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../bitcoin/bitcoin_screen.dart';
 import '../calendar/calendar_screen.dart';
@@ -47,7 +47,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         final day = DateTime(sel.year, sel.month, sel.day);
         if (day.isAfter(_today())) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Não é possível registrar diária em data futura.')),
+            SnackBar(content: Text(AppLocalizations.of(context).futureDateBlocked)),
           );
           return;
         }
@@ -61,6 +61,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     // FAB só nas abas Início e Calendário.
     final showFab = _index == _homeTab || _index == _calendarTab;
 
@@ -70,33 +71,33 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           ? FloatingActionButton.extended(
               onPressed: _newEntry,
               icon: const Icon(Icons.add),
-              label: const Text('Nova diária'),
+              label: Text(t.newEntry),
             )
           : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: S.navHome),
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: const Icon(Icons.home),
+              label: t.navHome),
           NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long),
-              label: S.navReport),
+              icon: const Icon(Icons.receipt_long_outlined),
+              selectedIcon: const Icon(Icons.receipt_long),
+              label: t.navReport),
           NavigationDestination(
-              icon: Icon(Icons.person_search_outlined),
-              selectedIcon: Icon(Icons.person_search),
-              label: 'Quem deve'),
+              icon: const Icon(Icons.person_search_outlined),
+              selectedIcon: const Icon(Icons.person_search),
+              label: t.navWhoOwes),
           NavigationDestination(
-              icon: Icon(Icons.calendar_month_outlined),
-              selectedIcon: Icon(Icons.calendar_month),
-              label: S.navCalendar),
+              icon: const Icon(Icons.calendar_month_outlined),
+              selectedIcon: const Icon(Icons.calendar_month),
+              label: t.navCalendar),
           NavigationDestination(
-              icon: Icon(Icons.currency_bitcoin),
-              selectedIcon: Icon(Icons.currency_bitcoin),
-              label: S.navBitcoin),
+              icon: const Icon(Icons.currency_bitcoin),
+              selectedIcon: const Icon(Icons.currency_bitcoin),
+              label: t.navBitcoin),
         ],
       ),
     );

@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/brand.dart';
 import '../../../data/database/database.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
 
@@ -25,6 +26,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final entries = ref.watch(allEntriesProvider).value ?? const [];
     final byDay = <DateTime, List<WorkEntry>>{};
     for (final e in entries) {
@@ -35,7 +37,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final dayEntries = selected == null ? const <WorkEntry>[] : (byDay[_dayKey(selected)] ?? const []);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendário')),
+      appBar: AppBar(title: Text(t.calendar)),
       body: Column(
         children: [
           TableCalendar<WorkEntry>(
@@ -45,10 +47,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             lastDay: DateTime.now(),
             focusedDay: _focused,
             calendarFormat: _format,
-            availableCalendarFormats: const {
-              CalendarFormat.month: 'Mês',
-              CalendarFormat.twoWeeks: '2 semanas',
-              CalendarFormat.week: 'Semana',
+            availableCalendarFormats: {
+              CalendarFormat.month: t.fmtMonth,
+              CalendarFormat.twoWeeks: t.fmtTwoWeeks,
+              CalendarFormat.week: t.fmtWeek,
             },
             startingDayOfWeek: StartingDayOfWeek.monday,
             selectedDayPredicate: (d) => selected != null && isSameDay(selected, d),
@@ -93,12 +95,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           const Divider(height: 1),
           Expanded(
             child: selected == null
-                ? const EmptyState(
+                ? EmptyState(
                     icon: Icons.touch_app,
-                    message: 'Toque em um dia para ver as diárias.')
+                    message: t.tapADay)
                 : dayEntries.isEmpty
-                    ? const EmptyState(
-                        icon: Icons.event_busy, message: 'Nenhuma diária neste dia.')
+                    ? EmptyState(
+                        icon: Icons.event_busy, message: t.noEntriesDay)
                     : ListView(
                         children: dayEntries.map((e) => EntryTile(entry: e)).toList(),
                       ),

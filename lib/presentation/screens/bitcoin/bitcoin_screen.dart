@@ -9,7 +9,7 @@ import '../../../core/format.dart';
 import '../../../data/database/database.dart';
 import '../../../domain/period.dart';
 import '../../../domain/services/bitcoin_compare_service.dart';
-import '../../../l10n/strings.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 
 /// Comparativo educativo "e se eu tivesse poupado em Bitcoin?" + meta de poupança.
@@ -18,6 +18,7 @@ class BitcoinScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final type = ref.watch(periodTypeProvider);
     final anchor = ref.watch(periodAnchorProvider);
     final pct = ref.watch(settingsProvider).bitcoinSavingsPct;
@@ -32,7 +33,7 @@ class BitcoinScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Text(
-              'E se você tivesse poupado ${(pct * 100).round()}% dos seus ganhos em Bitcoin?',
+              t.bitcoinQuestion((pct * 100).round()),
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
@@ -45,7 +46,7 @@ class BitcoinScreen extends ConsumerWidget {
             ),
             error: (e, _) => Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('Não foi possível calcular agora: $e'),
+              child: Text('${t.btcCalcFail}: $e'),
             ),
             data: (result) => _comparisonBody(context, result),
           ),
@@ -59,11 +60,11 @@ class BitcoinScreen extends ConsumerWidget {
                 color: Brand.orange.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 18, color: Brand.orange),
-                  SizedBox(width: 8),
-                  Expanded(child: Text(S.btcDisclaimer, style: TextStyle(fontSize: 12))),
+                  const Icon(Icons.info_outline, size: 18, color: Brand.orange),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(t.btcDisclaimer, style: const TextStyle(fontSize: 12))),
                 ],
               ),
             ),
@@ -75,7 +76,7 @@ class BitcoinScreen extends ConsumerWidget {
             child: FilledButton.icon(
               onPressed: _openBinance,
               icon: const Icon(Icons.currency_bitcoin),
-              label: const Text(S.startSaving),
+              label: Text(t.startSavingBitcoin),
             ),
           ),
 
@@ -89,19 +90,20 @@ class BitcoinScreen extends ConsumerWidget {
   }
 
   Widget _periodNav(BuildContext context, WidgetRef ref, PeriodType type, DateTime anchor) {
+    final loc = AppLocalizations.of(context);
     return Column(
       children: [
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: Row(
-            children: PeriodType.values.map((t) {
+            children: PeriodType.values.map((pt) {
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: ChoiceChip(
-                  label: Text(t.label),
-                  selected: t == type,
-                  onSelected: (_) => ref.read(periodTypeProvider.notifier).state = t,
+                  label: Text(loc.periodName(pt)),
+                  selected: pt == type,
+                  onSelected: (_) => ref.read(periodTypeProvider.notifier).state = pt,
                 ),
               );
             }).toList(),
@@ -132,20 +134,21 @@ class BitcoinScreen extends ConsumerWidget {
   }
 
   Widget _comparisonBody(BuildContext context, BitcoinComparisonResult result) {
+    final t = AppLocalizations.of(context);
     if (result.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(24),
-        child: Text('Sem diárias no período para simular.'),
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(t.btcNoEntries),
       );
     }
     return Column(
       children: [
         if (result.incomplete)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'Resultado parcial: faltam cotações de alguns dias (sem internet).',
-              style: TextStyle(fontSize: 12, color: Brand.pending),
+              t.btcIncomplete,
+              style: const TextStyle(fontSize: 12, color: Brand.pending),
             ),
           ),
         ...result.byCurrency.values.map((c) => _comparisonCard(context, c)),
@@ -154,6 +157,7 @@ class BitcoinScreen extends ConsumerWidget {
   }
 
   Widget _comparisonCard(BuildContext context, BitcoinComparison c) {
+    final t = AppLocalizations.of(context);
     final gainPositive = c.gainAbs >= 0;
     final color = gainPositive ? Brand.paid : Colors.redAccent;
     return Card(
@@ -163,19 +167,19 @@ class BitcoinScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Em ${c.currency.code}',
+            Text(t.inCurrency(c.currency.code),
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Brand.orange)),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _stat('Você teria poupado', Fmt.money(c.savedFiat, c.currency))),
+                Expanded(child: _stat(t.youWouldHaveSaved, Fmt.money(c.savedFiat, c.currency))),
                 Expanded(
-                    child: _stat('Valor hoje em Bitcoin', Fmt.money(c.currentValue, c.currency),
+                    child: _stat(t.valueTodayBtc, Fmt.money(c.currentValue, c.currency),
                         color: Brand.orange)),
               ],
             ),
             const SizedBox(height: 10),
-            Text('Bitcoin acumulado: ${Fmt.btc(c.accumulatedBtc)}',
+            Text(t.btcAccumulated(Fmt.btc(c.accumulatedBtc)),
                 style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12)),
             const SizedBox(height: 12),
             Container(
@@ -188,7 +192,7 @@ class BitcoinScreen extends ConsumerWidget {
                 children: [
                   Icon(gainPositive ? Icons.trending_up : Icons.trending_down, color: color),
                   const SizedBox(width: 8),
-                  Text(gainPositive ? 'Valorização' : 'Desvalorização',
+                  Text(gainPositive ? t.appreciation : t.depreciation,
                       style: TextStyle(color: color, fontWeight: FontWeight.w600)),
                   const Spacer(),
                   Text('${Fmt.money(c.gainAbs, c.currency)}  (${Fmt.signedPercent(c.gainPct)})',
@@ -216,6 +220,7 @@ class BitcoinScreen extends ConsumerWidget {
   // ---- Meta de poupança ----
 
   Widget _goalSection(BuildContext context, WidgetRef ref, SavingsGoal? goal, PeriodType type) {
+    final t = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -225,18 +230,18 @@ class BitcoinScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.flag_outlined, color: Brand.orange),
               const SizedBox(width: 8),
-              const Text('Meta de poupança',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(t.savingsGoal,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const Spacer(),
               TextButton(
                 onPressed: () => _editGoal(context, ref, goal),
-                child: Text(goal == null ? 'Definir' : 'Editar'),
+                child: Text(goal == null ? t.define : t.edit),
               ),
             ],
           ),
           if (goal == null)
-            const Text('Defina quanto quer guardar por período e acompanhe o avanço.',
-                style: TextStyle(color: Colors.grey))
+            Text(t.savingsGoalHint,
+                style: const TextStyle(color: Colors.grey))
           else
             _goalProgress(context, ref, goal, type),
         ],
@@ -245,6 +250,7 @@ class BitcoinScreen extends ConsumerWidget {
   }
 
   Widget _goalProgress(BuildContext context, WidgetRef ref, SavingsGoal goal, PeriodType selectedType) {
+    final t = AppLocalizations.of(context);
     final goalType = _periodFromString(goal.period);
     final comparison = ref.watch(bitcoinComparisonProvider).value;
     final c = comparison?.byCurrency[goal.currency];
@@ -258,11 +264,11 @@ class BitcoinScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Meta: ${Fmt.money(goal.targetAmount, goal.currency)} por ${goalType.label.toLowerCase()}',
+            Text(t.goalLine(Fmt.money(goal.targetAmount, goal.currency), t.periodName(goalType).toLowerCase()),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             if (saved == null)
-              Text('Selecione o período "${goalType.label}" acima para acompanhar a meta.',
+              Text(t.selectPeriodForGoal(t.periodName(goalType)),
                   style: const TextStyle(color: Brand.pending, fontSize: 12))
             else ...[
               LinearProgressIndicator(
@@ -275,9 +281,9 @@ class BitcoinScreen extends ConsumerWidget {
                 color: Brand.orange,
               ),
               const SizedBox(height: 8),
-              Text('Poupado: ${Fmt.money(saved, goal.currency)} de ${Fmt.money(goal.targetAmount, goal.currency)}'),
+              Text(t.savedOf(Fmt.money(saved, goal.currency), Fmt.money(goal.targetAmount, goal.currency))),
               if (c != null)
-                Text('Equivalente hoje em Bitcoin: ${Fmt.money(c.currentValue, goal.currency)}',
+                Text(t.btcEquivalent(Fmt.money(c.currentValue, goal.currency)),
                     style: const TextStyle(color: Brand.orange, fontSize: 13)),
             ],
           ],
@@ -295,6 +301,7 @@ class BitcoinScreen extends ConsumerWidget {
       };
 
   Future<void> _editGoal(BuildContext context, WidgetRef ref, SavingsGoal? goal) async {
+    final t = AppLocalizations.of(context);
     final amountCtrl = TextEditingController(
         text: goal != null ? goal.targetAmount.toStringAsFixed(0) : '');
     var currency = goal?.currency ?? ref.read(settingsProvider).defaultCurrency;
@@ -304,7 +311,7 @@ class BitcoinScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(
-          title: const Text('Meta de poupança'),
+          title: Text(t.savingsGoal),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -312,14 +319,14 @@ class BitcoinScreen extends ConsumerWidget {
                 controller: amountCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Quanto guardar',
+                  labelText: t.howMuchToSave,
                   prefixText: '${currency.symbol} ',
                 ),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Text('Moeda: '),
+                  Text('${t.currency}: '),
                   DropdownButton<Currency>(
                     value: currency,
                     onChanged: (v) => setLocal(() => currency = v!),
@@ -331,12 +338,12 @@ class BitcoinScreen extends ConsumerWidget {
                   DropdownButton<String>(
                     value: period,
                     onChanged: (v) => setLocal(() => period = v!),
-                    items: const [
-                      DropdownMenuItem(value: 'week', child: Text('Semana')),
-                      DropdownMenuItem(value: 'month', child: Text('Mês')),
-                      DropdownMenuItem(value: 'quarter', child: Text('Trimestre')),
-                      DropdownMenuItem(value: 'semester', child: Text('Semestre')),
-                      DropdownMenuItem(value: 'year', child: Text('Ano')),
+                    items: [
+                      DropdownMenuItem(value: 'week', child: Text(t.pWeek)),
+                      DropdownMenuItem(value: 'month', child: Text(t.pMonth)),
+                      DropdownMenuItem(value: 'quarter', child: Text(t.pQuarter)),
+                      DropdownMenuItem(value: 'semester', child: Text(t.pSemester)),
+                      DropdownMenuItem(value: 'year', child: Text(t.pYear)),
                     ],
                   ),
                 ],
@@ -350,9 +357,9 @@ class BitcoinScreen extends ConsumerWidget {
                   await ref.read(databaseProvider).clearGoal();
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
-                child: const Text('Remover', style: TextStyle(color: Colors.red)),
+                child: Text(t.remove, style: const TextStyle(color: Colors.red)),
               ),
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
             FilledButton(
               onPressed: () async {
                 final amount =
@@ -365,7 +372,7 @@ class BitcoinScreen extends ConsumerWidget {
                     ));
                 if (ctx.mounted) Navigator.pop(ctx);
               },
-              child: const Text('Salvar'),
+              child: Text(t.save),
             ),
           ],
         ),

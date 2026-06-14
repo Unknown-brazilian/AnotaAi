@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/brand.dart';
-import '../../../l10n/strings.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 
 /// Tela de abertura animada (fundo preto, animações laranja) com dica rotativa.
@@ -23,13 +23,13 @@ class _AnimatedSplashState extends ConsumerState<AnimatedSplash>
     with TickerProviderStateMixin {
   late final AnimationController _logo;
   late final AnimationController _pulse;
-  late final String _tip;
+  late final int _tipIndex;
   bool _done = false;
 
   @override
   void initState() {
     super.initState();
-    _tip = _pickTip();
+    _tipIndex = _pickTipIndex();
 
     _logo = AnimationController(
       vsync: this,
@@ -46,18 +46,19 @@ class _AnimatedSplashState extends ConsumerState<AnimatedSplash>
     Future.delayed(const Duration(milliseconds: 5000), _finish);
   }
 
-  /// Sorteia uma dica diferente da exibida na abertura anterior.
-  String _pickTip() {
+  /// Sorteia um índice de dica diferente do exibido na abertura anterior.
+  /// (O texto traduzido é resolvido no build, conforme o idioma atual.)
+  int _pickTipIndex() {
     final prefs = ref.read(sharedPreferencesProvider);
     final last = prefs.getInt('lastTipIndex') ?? -1;
-    final tips = S.splashTips;
+    const count = 10; // mesmas N dicas em todos os idiomas
     int idx;
     final rnd = Random();
     do {
-      idx = rnd.nextInt(tips.length);
-    } while (idx == last && tips.length > 1);
+      idx = rnd.nextInt(count);
+    } while (idx == last && count > 1);
     prefs.setInt('lastTipIndex', idx);
-    return tips[idx];
+    return idx;
   }
 
   void _finish() {
@@ -75,6 +76,9 @@ class _AnimatedSplashState extends ConsumerState<AnimatedSplash>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final tips = t.splashTips;
+    final tip = tips[_tipIndex % tips.length];
     final fade = CurvedAnimation(parent: _logo, curve: Curves.easeOut);
     final scale = Tween(begin: 0.7, end: 1.0)
         .animate(CurvedAnimation(parent: _logo, curve: Curves.easeOutBack));
@@ -125,7 +129,7 @@ class _AnimatedSplashState extends ConsumerState<AnimatedSplash>
                     child: FadeTransition(
                       opacity: fade,
                       child: Text(
-                        _tip,
+                        tip,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Brand.white,
@@ -140,7 +144,7 @@ class _AnimatedSplashState extends ConsumerState<AnimatedSplash>
                   Padding(
                     padding: const EdgeInsets.only(bottom: 28),
                     child: Text(
-                      'Toque para pular',
+                      t.tapToSkip,
                       style: TextStyle(
                         color: Brand.white.withValues(alpha: 0.45),
                         fontSize: 12,

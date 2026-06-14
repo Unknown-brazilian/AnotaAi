@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/brand.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 
 /// Cadastro inicial (local), exibido UMA vez após a splash:
@@ -43,12 +44,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _setupPin() async {
+    final t = AppLocalizations.of(context);
     final ctrl = TextEditingController();
     final confirmCtrl = TextEditingController();
     final pin = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Definir PIN'),
+        title: Text(t.definePin),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -58,36 +60,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               obscureText: true,
               autofocus: true,
               maxLength: 8,
-              decoration: const InputDecoration(labelText: 'PIN (mín. 4 dígitos)'),
+              decoration: InputDecoration(labelText: t.pinHint),
             ),
             TextField(
               controller: confirmCtrl,
               keyboardType: TextInputType.number,
               obscureText: true,
               maxLength: 8,
-              decoration: const InputDecoration(labelText: 'Confirme o PIN'),
+              decoration: InputDecoration(labelText: t.confirmPin),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
           FilledButton(
             onPressed: () {
               final a = ctrl.text.trim();
               final b = confirmCtrl.text.trim();
               if (a.length < 4) {
                 ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('O PIN precisa ter ao menos 4 dígitos.')));
+                    SnackBar(content: Text(t.pinTooShort)));
                 return;
               }
               if (a != b) {
                 ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('Os PINs não conferem.')));
+                    SnackBar(content: Text(t.pinMismatch)));
                 return;
               }
               Navigator.pop(ctx, a);
             },
-            child: const Text('Salvar'),
+            child: Text(t.save),
           ),
         ],
       ),
@@ -118,6 +120,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Brand.black,
       body: SafeArea(
@@ -129,32 +132,32 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               const SizedBox(height: 12),
               Image.asset(Brand.logoTwoTone, height: 56),
               const SizedBox(height: 28),
-              const Text(
-                'Bem-vindo!',
-                style: TextStyle(color: Brand.white, fontSize: 26, fontWeight: FontWeight.bold),
+              Text(
+                t.welcome,
+                style: const TextStyle(color: Brand.white, fontSize: 26, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
               Text(
-                'Vamos configurar o app em 10 segundos. Esses dados ficam só no seu aparelho.',
+                t.onboardingIntro,
                 style: TextStyle(color: Brand.white.withValues(alpha: 0.7), fontSize: 15),
               ),
               const SizedBox(height: 32),
 
               // Nome
-              Text('Como você se chama?',
-                  style: TextStyle(
+              Text(t.whatsYourName,
+                  style: const TextStyle(
                       color: Brand.white, fontSize: 15, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _nameCtrl,
                 style: const TextStyle(color: Brand.white),
                 textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                  hintText: 'Seu nome',
-                  prefixIcon: Icon(Icons.person, color: Brand.orange),
+                decoration: InputDecoration(
+                  hintText: t.yourName,
+                  prefixIcon: const Icon(Icons.person, color: Brand.orange),
                 ),
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Informe seu nome para continuar' : null,
+                    (v == null || v.trim().isEmpty) ? t.nameRequired : null,
               ),
               const SizedBox(height: 28),
 
@@ -163,14 +166,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 children: [
                   const Icon(Icons.lock_outline, color: Brand.orange, size: 20),
                   const SizedBox(width: 8),
-                  Text('Proteger o app (opcional)',
-                      style: TextStyle(
+                  Text(t.protectApp,
+                      style: const TextStyle(
                           color: Brand.white, fontSize: 15, fontWeight: FontWeight.w600)),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
-                'É um app financeiro — você pode bloquear a abertura com biometria e/ou PIN.',
+                t.protectAppHint,
                 style: TextStyle(color: Brand.white.withValues(alpha: 0.6), fontSize: 13),
               ),
               const SizedBox(height: 10),
@@ -180,8 +183,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   color: Brand.blackElevated,
                   child: SwitchListTile(
                     secondary: const Icon(Icons.fingerprint, color: Brand.orange),
-                    title: const Text('Biometria', style: TextStyle(color: Brand.white)),
-                    subtitle: Text('Digital ou rosto do aparelho',
+                    title: Text(t.biometrics, style: const TextStyle(color: Brand.white)),
+                    subtitle: Text(t.biometricsSub,
                         style: TextStyle(color: Brand.white.withValues(alpha: 0.6))),
                     value: _biometricEnabled,
                     onChanged: (v) => setState(() => _biometricEnabled = v),
@@ -191,9 +194,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 color: Brand.blackElevated,
                 child: ListTile(
                   leading: const Icon(Icons.pin, color: Brand.orange),
-                  title: Text(_pin == null ? 'Definir PIN' : 'PIN definido ✓',
+                  title: Text(_pin == null ? t.definePin : t.pinDefined,
                       style: const TextStyle(color: Brand.white)),
-                  subtitle: Text(_pin == null ? 'Toque para criar um PIN' : 'Toque para alterar',
+                  subtitle: Text(_pin == null ? t.tapToCreatePin : t.tapToChange,
                       style: TextStyle(color: Brand.white.withValues(alpha: 0.6))),
                   trailing: const Icon(Icons.chevron_right, color: Brand.white),
                   onTap: _setupPin,
@@ -207,7 +210,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     ? const SizedBox(
                         width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.check),
-                label: const Text('Começar a usar'),
+                label: Text(t.startUsing),
               ),
             ],
           ),

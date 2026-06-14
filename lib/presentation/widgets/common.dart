@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/brand.dart';
 import '../../core/enums.dart';
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../data/database/database.dart';
 import '../../domain/calc.dart';
 import '../../domain/summary.dart';
@@ -15,6 +16,7 @@ class PaidBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final color = isPaid ? Brand.paid : Brand.pending;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -28,7 +30,7 @@ class PaidBadge extends StatelessWidget {
         children: [
           Icon(isPaid ? Icons.check_circle : Icons.schedule, size: 14, color: color),
           const SizedBox(width: 4),
-          Text(isPaid ? 'Pago' : 'Pendente',
+          Text(isPaid ? t.paid : t.pending,
               style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
         ],
       ),
@@ -92,6 +94,7 @@ class CurrencyTotalsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -100,25 +103,25 @@ class CurrencyTotalsCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('Em ${totals.currency.code}',
+                Text(t.inCurrency(totals.currency.code),
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, color: Brand.orange, fontSize: 16)),
                 const Spacer(),
-                Text('${totals.days} diária(s)',
+                Text(t.daysCount(totals.days),
                     style: TextStyle(color: Theme.of(context).hintColor)),
               ],
             ),
             if (totals.hours > 0)
               Padding(
                 padding: const EdgeInsets.only(top: 2),
-                child: Text('Total de horas: ${Fmt.hours(totals.hours)}',
+                child: Text('${t.totalHours}: ${Fmt.hours(totals.hours)}',
                     style: TextStyle(color: Theme.of(context).hintColor, fontSize: 12)),
               ),
             const Divider(height: 20),
             // "A receber" = saldo em aberto (desconsidera o que já foi recebido).
-            _line(context, 'A receber', totals.pending, totals.currency, Brand.pending,
+            _line(context, t.toReceive, totals.pending, totals.currency, Brand.pending,
                 bold: true),
-            _line(context, 'Já recebido', totals.paid, totals.currency, Brand.paid),
+            _line(context, t.received, totals.paid, totals.currency, Brand.paid),
           ],
         ),
       ),

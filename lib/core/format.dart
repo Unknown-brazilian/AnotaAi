@@ -2,45 +2,54 @@ import 'package:intl/intl.dart';
 
 import 'enums.dart';
 
-/// Formatadores de moeda e data (pt-BR).
+/// Formatadores de moeda e data, sensíveis ao idioma.
+///
+/// [locale] é o locale do `intl` (ex.: 'pt_BR', 'en_US', 'es_ES') e é ajustado
+/// pelo app conforme o idioma escolhido (ver [setFromLanguage]). Datas e números
+/// passam a sair no formato do idioma selecionado.
 class Fmt {
   Fmt._();
 
-  static final _date = DateFormat('dd/MM/yyyy', 'pt_BR');
-  static final _dateShort = DateFormat('dd/MM', 'pt_BR');
-  static final _weekday = DateFormat('EEEE, dd/MM', 'pt_BR');
+  static String locale = 'pt_BR';
 
-  static String date(DateTime d) => _date.format(d);
-  static String dateShort(DateTime d) => _dateShort.format(d);
+  /// Converte o código de idioma do app ('pt'/'en'/'es') no locale do intl.
+  static void setFromLanguage(String lang) {
+    locale = switch (lang) {
+      'en' => 'en_US',
+      'es' => 'es_ES',
+      _ => 'pt_BR',
+    };
+  }
+
+  static String date(DateTime d) => DateFormat.yMd(locale).format(d);
+  static String dateShort(DateTime d) => DateFormat('dd/MM', locale).format(d);
   static String weekday(DateTime d) =>
-      toBeginningOfSentenceCase(_weekday.format(d))!;
+      toBeginningOfSentenceCase(DateFormat('EEEE, dd/MM', locale).format(d))!;
 
-  /// Formata um valor com o símbolo da moeda (€/£), padrão pt-BR (1.234,56).
+  /// Formata um valor com o símbolo da moeda (€/£/$), no formato do idioma.
   static String money(double value, Currency currency) {
-    final f = NumberFormat.currency(
-      locale: 'pt_BR',
+    return NumberFormat.currency(
+      locale: locale,
       symbol: '${currency.symbol} ',
       decimalDigits: 2,
-    );
-    return f.format(value);
+    ).format(value);
   }
 
   /// Formata um valor em reais (R$).
   static String brl(double value) {
-    return NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$ ', decimalDigits: 2)
+    return NumberFormat.currency(locale: locale, symbol: 'R\$ ', decimalDigits: 2)
         .format(value);
   }
 
   /// Formata uma quantidade de Bitcoin com até 8 casas (sem zeros à toa).
+  /// Usa o sufixo "BTC" (em vez do símbolo ₿, que muitas fontes não têm).
   static String btc(double value) {
-    final f = NumberFormat('0.########', 'pt_BR');
-    return '₿ ${f.format(value)}';
+    return '${NumberFormat('0.########', locale).format(value)} BTC';
   }
 
   /// Percentual com sinal (ex.: +12,3%).
   static String signedPercent(double pct) {
-    final f = NumberFormat('+0.0;-0.0', 'pt_BR');
-    return '${f.format(pct)}%';
+    return '${NumberFormat('+0.0;-0.0', locale).format(pct)}%';
   }
 
   static String hours(double h) {

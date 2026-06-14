@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/brand.dart';
 import '../../../domain/services/settings_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 
 /// Painel do usuário — o ÚNICO lugar onde o nome e a segurança (PIN/biometria)
@@ -12,10 +13,11 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final s = ref.watch(settingsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Perfil do usuário')),
+      appBar: AppBar(title: Text(t.profile)),
       body: ListView(
         children: [
           const SizedBox(height: 8),
@@ -33,39 +35,39 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           Center(
             child: Text(
-              s.defaultWorkerName.isEmpty ? 'Sem nome' : s.defaultWorkerName,
+              s.defaultWorkerName.isEmpty ? t.noName : s.defaultWorkerName,
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
           const SizedBox(height: 16),
 
-          _header('Identidade'),
+          _header(t.identity),
           ListTile(
             leading: const Icon(Icons.person),
-            title: const Text('Nome'),
-            subtitle: Text(s.defaultWorkerName.isEmpty ? 'Não definido' : s.defaultWorkerName),
+            title: Text(t.name),
+            subtitle: Text(s.defaultWorkerName.isEmpty ? t.notSet : s.defaultWorkerName),
             trailing: const Icon(Icons.edit),
             onTap: () => _editName(context, ref, s),
           ),
 
-          _header('Segurança'),
+          _header(t.security),
           SwitchListTile(
             secondary: const Icon(Icons.pin),
-            title: const Text('Bloqueio por PIN'),
-            subtitle: Text(s.pinEnabled ? 'Ativado' : 'Desativado'),
+            title: Text(t.pinLock),
+            subtitle: Text(s.pinEnabled ? t.enabled : t.disabled),
             value: s.pinEnabled,
             onChanged: (v) => _togglePin(context, ref, s, v),
           ),
           if (s.pinEnabled)
             ListTile(
               leading: const Icon(Icons.password),
-              title: const Text('Alterar PIN'),
+              title: Text(t.changePin),
               onTap: () => _togglePin(context, ref, s, true, forceChange: true),
             ),
           SwitchListTile(
             secondary: const Icon(Icons.fingerprint),
-            title: const Text('Bloqueio por biometria'),
-            subtitle: const Text('Digital ou rosto do aparelho'),
+            title: Text(t.biometricLock),
+            subtitle: Text(t.biometricsSub),
             value: s.biometricEnabled,
             onChanged: (v) => _toggleBiometric(context, ref, s, v),
           ),
@@ -90,21 +92,22 @@ class ProfileScreen extends ConsumerWidget {
       );
 
   Future<void> _editName(BuildContext context, WidgetRef ref, AppSettings s) async {
+    final t = AppLocalizations.of(context);
     final ctrl = TextEditingController(text: s.defaultWorkerName);
     final result = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Seu nome'),
+        title: Text(t.yourName),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Nome'),
+          decoration: InputDecoration(labelText: t.name),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(t.cancel)),
           FilledButton(
               onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-              child: const Text('Salvar')),
+              child: Text(t.save)),
         ],
       ),
     );
@@ -115,6 +118,7 @@ class ProfileScreen extends ConsumerWidget {
 
   Future<void> _togglePin(BuildContext context, WidgetRef ref, AppSettings s, bool enable,
       {bool forceChange = false}) async {
+    final t = AppLocalizations.of(context);
     final service = ref.read(settingsServiceProvider);
     if (!enable) {
       await service.clearPin();
@@ -126,7 +130,7 @@ class ProfileScreen extends ConsumerWidget {
     final pin = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(forceChange ? 'Alterar PIN' : 'Definir PIN'),
+        title: Text(forceChange ? t.changePin : t.definePin),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -136,36 +140,36 @@ class ProfileScreen extends ConsumerWidget {
               obscureText: true,
               autofocus: true,
               maxLength: 8,
-              decoration: const InputDecoration(labelText: 'PIN (mín. 4 dígitos)'),
+              decoration: InputDecoration(labelText: t.pinHint),
             ),
             TextField(
               controller: confirmCtrl,
               keyboardType: TextInputType.number,
               obscureText: true,
               maxLength: 8,
-              decoration: const InputDecoration(labelText: 'Confirme o PIN'),
+              decoration: InputDecoration(labelText: t.confirmPin),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
           FilledButton(
             onPressed: () {
               final a = ctrl.text.trim();
               final b = confirmCtrl.text.trim();
               if (a.length < 4) {
                 ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('O PIN precisa ter ao menos 4 dígitos.')));
+                    SnackBar(content: Text(t.pinTooShort)));
                 return;
               }
               if (a != b) {
                 ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('Os PINs não conferem.')));
+                    SnackBar(content: Text(t.pinMismatch)));
                 return;
               }
               Navigator.pop(ctx, a);
             },
-            child: const Text('Salvar'),
+            child: Text(t.save),
           ),
         ],
       ),
@@ -178,6 +182,7 @@ class ProfileScreen extends ConsumerWidget {
 
   Future<void> _toggleBiometric(
       BuildContext context, WidgetRef ref, AppSettings s, bool enable) async {
+    final t = AppLocalizations.of(context);
     if (!enable) {
       await ref.read(settingsProvider.notifier).update(s.copyWith(biometricEnabled: false));
       return;
@@ -186,7 +191,7 @@ class ProfileScreen extends ConsumerWidget {
     if (!can) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Este aparelho não tem biometria configurada.')));
+            SnackBar(content: Text(t.noBiometricsConfigured)));
       }
       return;
     }

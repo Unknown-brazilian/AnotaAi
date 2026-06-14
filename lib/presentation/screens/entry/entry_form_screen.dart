@@ -12,6 +12,7 @@ import '../../../core/format.dart';
 import '../../../data/database/database.dart';
 import '../../../domain/calc.dart';
 import '../../../domain/services/location_service.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../../widgets/autocomplete_field.dart';
 
@@ -151,6 +152,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   }
 
   Future<void> _captureLocation() async {
+    final locationFail = AppLocalizations.of(context).locationFail;
     setState(() => _capturingLocation = true);
     try {
       final loc = await ref.read(locationServiceProvider).capture();
@@ -162,13 +164,14 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
     } on LocationFailure catch (f) {
       _snack(f.message);
     } catch (e) {
-      _snack('Não foi possível obter a localização.');
+      _snack(locationFail);
     } finally {
       if (mounted) setState(() => _capturingLocation = false);
     }
   }
 
   Future<void> _addPhoto(ImageSource source) async {
+    final photoFail = AppLocalizations.of(context).photoFail;
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(source: source, imageQuality: 75);
@@ -178,7 +181,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
           .import(File(picked.path));
       setState(() => _attachments = [..._attachments, name]);
     } catch (e) {
-      _snack('Não foi possível anexar a foto.');
+      _snack(photoFail);
     }
   }
 
@@ -192,7 +195,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
 
     // Defesa: nunca salvar diária em data futura.
     if (_date.isAfter(_today())) {
-      _snack('Não é possível registrar diária em data futura.');
+      _snack(AppLocalizations.of(context).futureDateBlocked);
       return;
     }
 
@@ -244,13 +247,14 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final employers = ref.watch(employerSuggestionsProvider).value ?? const [];
     final places = ref.watch(placeSuggestionsProvider).value ?? const [];
     final services = ref.watch(serviceSuggestionsProvider).value ?? const [];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing == null ? 'Nova diária' : 'Editar diária'),
+        title: Text(widget.existing == null ? t.newEntry : t.editEntry),
       ),
       body: Form(
         key: _formKey,
@@ -261,41 +265,41 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.calendar_today),
-              title: const Text('Data do trabalho'),
+              title: Text(t.workDate),
               subtitle: Text(Fmt.weekday(_date)),
-              trailing: TextButton(onPressed: _pickDate, child: const Text('Alterar')),
+              trailing: TextButton(onPressed: _pickDate, child: Text(t.change)),
             ),
             const SizedBox(height: 8),
 
             AutocompleteField(
               controller: _employer,
-              label: 'Nome do patrão / empresa',
+              label: t.employer,
               icon: Icons.badge_outlined,
               options: employers,
             ),
             const SizedBox(height: 12),
             AutocompleteField(
               controller: _place,
-              label: 'Lugar / obra',
+              label: t.place,
               icon: Icons.location_city,
               options: places,
             ),
             const SizedBox(height: 12),
             AutocompleteField(
               controller: _service,
-              label: 'Tipo de serviço',
+              label: t.serviceType,
               icon: Icons.handyman,
               options: services,
             ),
             const SizedBox(height: 20),
 
             // Modo de pagamento
-            Text('Forma de pagamento', style: Theme.of(context).textTheme.titleSmall),
+            Text(t.paymentMode, style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
             SegmentedButton<PaymentMode>(
-              segments: const [
-                ButtonSegment(value: PaymentMode.diaria, label: Text('Por diária'), icon: Icon(Icons.today)),
-                ButtonSegment(value: PaymentMode.hora, label: Text('Por hora'), icon: Icon(Icons.timelapse)),
+              segments: [
+                ButtonSegment(value: PaymentMode.diaria, label: Text(t.byDay), icon: const Icon(Icons.today)),
+                ButtonSegment(value: PaymentMode.hora, label: Text(t.byHour), icon: const Icon(Icons.timelapse)),
               ],
               selected: {_mode},
               onSelectionChanged: (s) => setState(() => _mode = s.first),
@@ -310,7 +314,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                           controller: _dailyRate,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
-                            labelText: 'Valor da diária',
+                            labelText: t.dailyRate,
                             prefixText: '${_currency.symbol} ',
                           ),
                           validator: _rateValidator,
@@ -319,7 +323,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                           controller: _hourlyRate,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
-                            labelText: 'Valor por hora',
+                            labelText: t.hourlyRate,
                             prefixText: '${_currency.symbol} ',
                           ),
                           validator: _rateValidator,
@@ -334,9 +338,9 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
             // Entrada/saída → horas
             Row(
               children: [
-                Expanded(child: _timeTile('Entrada', _start, () => _pickTime(true))),
+                Expanded(child: _timeTile(t.clockIn, _start, () => _pickTime(true))),
                 const SizedBox(width: 12),
-                Expanded(child: _timeTile('Saída', _end, () => _pickTime(false))),
+                Expanded(child: _timeTile(t.clockOut, _end, () => _pickTime(false))),
               ],
             ),
             if (_hours > 0)
@@ -346,7 +350,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                   children: [
                     const Icon(Icons.timer_outlined, size: 18),
                     const SizedBox(width: 6),
-                    Text('Horas trabalhadas: ${Fmt.hours(_hours)}',
+                    Text('${t.hoursWorked}: ${Fmt.hours(_hours)}',
                         style: const TextStyle(fontWeight: FontWeight.w600)),
                     if (_mode == PaymentMode.hora && _parseNum(_hourlyRate) > 0) ...[
                       const Spacer(),
@@ -361,7 +365,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
             // Pagamento
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Já recebi este valor'),
+              title: Text(t.iReceivedThis),
               value: _isPaid,
               onChanged: (v) => setState(() => _isPaid = v),
             ),
@@ -370,7 +374,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                 controller: _amountPaid,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Valor recebido (deixe vazio = valor cheio)',
+                  labelText: t.amountReceivedFull,
                   prefixText: '${_currency.symbol} ',
                 ),
               ),
@@ -387,17 +391,17 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
             TextFormField(
               controller: _notes,
               maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Observações',
+              decoration: InputDecoration(
+                labelText: t.notes,
                 alignLabelWithHint: true,
-                prefixIcon: Icon(Icons.notes),
+                prefixIcon: const Icon(Icons.notes),
               ),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _save,
               icon: const Icon(Icons.check),
-              label: const Text('Salvar diária'),
+              label: Text(t.saveEntry),
             ),
           ],
         ),
@@ -407,7 +411,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
 
   String? _rateValidator(String? v) {
     final n = double.tryParse((v ?? '').replaceAll(',', '.').trim());
-    if (n == null || n <= 0) return 'Informe um valor válido';
+    if (n == null || n <= 0) return AppLocalizations.of(context).invalidValue;
     return null;
   }
 
@@ -433,6 +437,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   }
 
   Widget _locationCard() {
+    final t = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -443,7 +448,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
               children: [
                 const Icon(Icons.place_outlined),
                 const SizedBox(width: 8),
-                const Text('Localização da obra'),
+                Text(t.siteLocation),
                 const Spacer(),
                 if (_lat != null)
                   IconButton(
@@ -469,7 +474,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                   ? const SizedBox(
                       width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.my_location),
-              label: Text(_lat == null ? 'Usar minha localização atual' : 'Atualizar localização'),
+              label: Text(_lat == null ? t.useMyLocation : t.updateLocation),
             ),
           ],
         ),
@@ -478,16 +483,17 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
   }
 
   Widget _attachmentsCard() {
+    final t = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(children: [
-              Icon(Icons.attach_file),
-              SizedBox(width: 8),
-              Text('Fotos / comprovantes'),
+            Row(children: [
+              const Icon(Icons.attach_file),
+              const SizedBox(width: 8),
+              Text(t.photosReceipts),
             ]),
             const SizedBox(height: 8),
             if (_attachments.isNotEmpty && _attachDir != null)
@@ -531,7 +537,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _addPhoto(ImageSource.camera),
                     icon: const Icon(Icons.camera_alt),
-                    label: const Text('Câmera'),
+                    label: Text(t.camera),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -539,7 +545,7 @@ class _EntryFormScreenState extends ConsumerState<EntryFormScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _addPhoto(ImageSource.gallery),
                     icon: const Icon(Icons.photo_library),
-                    label: const Text('Galeria'),
+                    label: Text(t.gallery),
                   ),
                 ),
               ],

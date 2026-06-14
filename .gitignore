@@ -56,3 +56,10 @@ prompt_claude_code_diarias_app.md
 # Artefatos locais
 /android/.kotlin/
 /Bugs/
+
+# Mídia/marketing (não é código do app)
+/files/
+*.mp4
+*.zip
+*.srt
+*.wav

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/brand.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../home/home_shell.dart';
 import '../onboarding/onboarding_screen.dart';
@@ -74,13 +75,14 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   }
 
   Future<void> _tryPin() async {
+    final t = AppLocalizations.of(context);
     final ok = await ref
         .read(settingsServiceProvider)
         .verifyPin(_pinCtrl.text.trim());
     if (ok) {
       widget.onUnlocked();
     } else {
-      setState(() => _error = 'PIN incorreto');
+      setState(() => _error = t.pinWrong);
     }
   }
 
@@ -92,6 +94,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final s = ref.watch(settingsProvider);
     return Scaffold(
       backgroundColor: Brand.black,
@@ -105,15 +108,15 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               const SizedBox(height: 12),
               const Icon(Icons.lock_outline, color: Brand.orange, size: 40),
               const SizedBox(height: 8),
-              const Text('App bloqueado',
-                  style: TextStyle(color: Brand.white, fontSize: 18)),
+              Text(t.appLocked,
+                  style: const TextStyle(color: Brand.white, fontSize: 18)),
               const SizedBox(height: 28),
               if (s.biometricEnabled)
                 OutlinedButton.icon(
                   onPressed: _tryBiometric,
                   icon: const Icon(Icons.fingerprint, color: Brand.orange),
-                  label: const Text('Usar biometria',
-                      style: TextStyle(color: Brand.white)),
+                  label: Text(t.useBiometrics,
+                      style: const TextStyle(color: Brand.white)),
                 ),
               if (s.pinEnabled) ...[
                 const SizedBox(height: 20),
@@ -134,7 +137,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                FilledButton(onPressed: _tryPin, child: const Text('Entrar')),
+                FilledButton(onPressed: _tryPin, child: Text(t.start)),
               ],
             ],
           ),

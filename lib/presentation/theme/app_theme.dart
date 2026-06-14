@@ -23,6 +23,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
+      // Roboto embutido (tem €/£/$) — evita "tofu" em fontes de sistema incompletas.
+      fontFamily: 'Roboto',
       colorScheme: scheme,
       scaffoldBackgroundColor: isDark ? Brand.black : const Color(0xFFF7F7F8),
       appBarTheme: AppBarTheme(

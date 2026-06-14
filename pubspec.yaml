@@ -1,7 +1,7 @@
 name: anotai
 description: "AnotAí — controle de diárias para trabalhadores que recebem por dia."
 publish_to: 'none'
-version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: ^3.12.1
@@ -81,6 +81,16 @@ flutter:
     - assets/icon/
     - assets/splash/
     - assets/brand/
+    - assets/fonts/
+
+  # Roboto embutido: garante os símbolos €/£/$ na tela e no PDF, mesmo em
+  # aparelhos cuja fonte do sistema não tem esses glifos.
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
 
 flutter_launcher_icons:
   android: true

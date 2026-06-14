@@ -7,6 +7,7 @@ import '../../../data/database/database.dart';
 import '../../../domain/period.dart';
 import '../../../domain/services/report_data.dart';
 import '../../../domain/summary.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common.dart';
 import '../export/export_screen.dart';
@@ -24,6 +25,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final type = ref.watch(periodTypeProvider);
     final anchor = ref.watch(periodAnchorProvider);
     final entriesAsync = ref.watch(entriesInPeriodProvider);
@@ -35,11 +37,11 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Extrato'),
+        title: Text(t.navReport),
         actions: [
           IconButton(
-            icon: const Icon(Icons.ios_share),
-            tooltip: 'Exportar',
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: t.export,
             onPressed: summary.isEmpty
                 ? null
                 : () => _openExport(entriesAsync.value ?? [], summary, type, anchor, settings.defaultWorkerName),
@@ -48,12 +50,12 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
       ),
       body: Column(
         children: [
-          _periodSelector(type),
+          _periodSelector(context, type),
           _periodNav(type, anchor),
           Expanded(
             child: entriesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Erro: $e')),
+              error: (e, _) => Center(child: Text(t.error(e))),
               data: (entries) {
                 return ListView(
                   padding: const EdgeInsets.only(bottom: 120),
@@ -63,37 +65,37 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
                         children: [
-                          const Text('Ver em Real (R\$)'),
+                          Text(t.showInBrl),
                           const Spacer(),
                           Switch(value: _showBrl, onChanged: (v) => setState(() => _showBrl = v)),
                         ],
                       ),
                     ),
                     if (summary.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(24),
+                      Padding(
+                        padding: const EdgeInsets.all(24),
                         child: EmptyState(
                           icon: Icons.receipt_long,
-                          message: 'Nenhuma diária neste período.',
+                          message: t.noEntriesPeriod,
                         ),
                       )
                     else ...[
                       if (summary.isMultiCurrency)
-                        const Padding(
-                          padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
                           child: Text(
-                            'Há registros em moedas diferentes — os totais aparecem separados.',
-                            style: TextStyle(fontSize: 12, color: Brand.pending),
+                            t.multiCurrencyNote,
+                            style: const TextStyle(fontSize: 12, color: Brand.pending),
                           ),
                         ),
                       ...summary.totals.map((t) => Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             child: CurrencyTotalsCard(totals: t, brlRate: brlRate),
                           )),
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                        child: Text('Diárias',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                        child: Text(t.entries,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       ),
                       ...entries.map((e) => _selectableTile(e)),
                     ],
@@ -110,19 +112,20 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     );
   }
 
-  Widget _periodSelector(PeriodType type) {
+  Widget _periodSelector(BuildContext context, PeriodType type) {
+    final loc = AppLocalizations.of(context);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
-        children: PeriodType.values.map((t) {
-          final sel = t == type;
+        children: PeriodType.values.map((pt) {
+          final sel = pt == type;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
-              label: Text(t.label),
+              label: Text(loc.periodName(pt)),
               selected: sel,
-              onSelected: (_) => ref.read(periodTypeProvider.notifier).state = t,
+              onSelected: (_) => ref.read(periodTypeProvider.notifier).state = pt,
             ),
           );
         }).toList(),
@@ -193,6 +196,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   }
 
   Widget _bulkBar(List entries) {
+    final t = AppLocalizations.of(context);
     final selectedEntries = entries.where((e) => _selected.contains(e.id)).toList();
     return SafeArea(
       child: Container(
@@ -200,7 +204,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         child: Row(
           children: [
-            Text('${_selected.length} selecionada(s)'),
+            Text(t.selectedCount(_selected.length)),
             const Spacer(),
             TextButton(
               onPressed: () async {
@@ -208,7 +212,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     selectedEntries.cast(), paid: false);
                 setState(_selected.clear);
               },
-              child: const Text('Pendente'),
+              child: Text(t.pending),
             ),
             const SizedBox(width: 4),
             FilledButton.icon(
@@ -218,7 +222,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 setState(_selected.clear);
               },
               icon: const Icon(Icons.check),
-              label: const Text('Marcar pago'),
+              label: Text(t.markPaidShort),
             ),
           ],
         ),
@@ -228,10 +232,11 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
   void _openExport(List entries, WorkSummary summary, PeriodType type,
       DateTime anchor, String worker) {
+    final t = AppLocalizations.of(context);
     final data = ReportData(
-      title: 'Extrato de diárias',
+      title: t.statementTitle,
       workerName: worker,
-      periodLabel: '${type.label} · ${PeriodCalculator.label(type, anchor)}',
+      periodLabel: t.periodLabelFull(type, PeriodCalculator.label(type, anchor)),
       entries: entries.cast(),
       summary: summary,
     );
